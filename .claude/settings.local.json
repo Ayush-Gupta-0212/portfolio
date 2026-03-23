@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/ayush/Desktop/Portfolio/client/src -type f \\\\\\(-name *.css -o -name *.scss \\\\\\))",
+      "Bash(mongosh \"mongodb://localhost:27017/portfolio\" --eval \"db.projects.find\\({}, {title: 1, order: 1}\\).sort\\({order: 1, createdAt: -1}\\).toArray\\(\\)\")",
+      "Bash(where mongosh:*)",
+      "Bash(where mongo:*)",
+      "Read(//c/Program Files/MongoDB//**)",
+      "Read(//c/Users/ayush/AppData/Local/Programs/**)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/ayush/**)",
+      "Bash(node updateProject.js)",
+      "Bash(find /c/Users/ayush/Desktop/Portfolio/client/src -type f \\\\\\(-name *.js -o -name *.jsx \\\\\\))",
+      "Bash(find /c/Users/ayush/Desktop/Portfolio/server -type f \\\\\\(-name *.js -o -name *.json \\\\\\))"
+    ]
+  }
+}

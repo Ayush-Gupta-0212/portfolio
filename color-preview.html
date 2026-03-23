@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Light Mode Vibe Options</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111; color: #fff; padding: 28px; }
+  h1 { text-align: center; margin-bottom: 6px; font-size: 26px; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 32px; font-size: 13px; }
+
+  .row { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto 40px; }
+  .palette { flex: 1; border-radius: 14px; overflow: hidden; border: 1px solid #333; }
+  .palette-header { padding: 14px 20px; text-align: center; font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+  .vibe-desc { text-align: center; font-size: 11px; padding: 0 20px 12px; opacity: 0.7; }
+
+  .mock-site { padding: 0; position: relative; overflow: hidden; }
+
+  .mock-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; position: relative; z-index: 2; }
+  .mock-nav .logo { font-weight: 700; font-size: 15px; }
+  .mock-nav .nav-links { display: flex; gap: 14px; font-size: 12px; }
+
+  .mock-hero { padding: 36px 20px 20px; text-align: center; position: relative; z-index: 2; }
+  .mock-hero h2 { font-size: 26px; margin-bottom: 6px; }
+  .mock-hero p { font-size: 13px; margin-bottom: 16px; }
+  .mock-btn { display: inline-block; padding: 9px 24px; border-radius: 7px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; }
+
+  .mock-cards { display: flex; gap: 10px; padding: 0 20px 20px; position: relative; z-index: 2; }
+  .mock-card { flex: 1; padding: 14px; border-radius: 9px; }
+  .mock-card h3 { font-size: 13px; margin-bottom: 5px; }
+  .mock-card p { font-size: 11px; line-height: 1.4; }
+  .mock-card .tag { display: inline-block; padding: 2px 9px; border-radius: 16px; font-size: 10px; margin-top: 6px; }
+
+  /* Particle dots */
+  .particles { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
+  .dot { position: absolute; border-radius: 50%; opacity: 0.5; }
+
+  /* Gradient overlay for vibe */
+  .vibe-gradient { position: absolute; inset: 0; z-index: 0; }
+
+  .swatches { padding: 14px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #0a0a0a; }
+  .swatch { border-radius: 6px; padding: 8px; text-align: center; }
+  .swatch-color { width: 100%; height: 32px; border-radius: 5px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.08); }
+  .swatch-label { font-size: 9px; color: #888; }
+  .swatch-hex { font-size: 10px; color: #ccc; font-family: monospace; }
+
+  .badge { font-size: 9px; padding: 2px 7px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+
+  .section-label { text-align: center; color: #666; font-size: 12px; margin-bottom: 16px; letter-spacing: 3px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<h1>Light Mode — Choose Your Vibe</h1>
+<p class="subtitle">Dark mode = Space / Cosmic. Pick a light mode identity below.</p>
+
+<!-- ROW 1: Three themed options -->
+<div class="row">
+
+  <!-- OPTION A: OCEAN / DEEP SEA -->
+  <div class="palette">
+    <div class="palette-header" style="background:#f0f7ff; color:#0a2540;">
+      A: OCEAN <span class="badge" style="background:#0066cc;color:#fff;">Deep Sea</span>
+    </div>
+    <div class="mock-site" style="background:#f5f9ff;">
+      <div class="vibe-gradient" style="background: radial-gradient(ellipse 80% 70% at 50% 80%, rgba(0,102,204,0.08) 0%, rgba(0,180,220,0.03) 40%, transparent 70%);"></div>
+      <!-- particles -->
+      <div class="particles">
+        <div class="dot" style="width:3px;height:3px;background:#0077dd;top:15%;left:20%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#0099ee;top:25%;left:65%;opacity:0.4;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#0066cc;top:45%;left:40%;opacity:0.25;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#0088dd;top:60%;left:80%;opacity:0.35;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#0077dd;top:35%;left:10%;opacity:0.3;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#0099ee;top:70%;left:55%;opacity:0.2;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#0066cc;top:80%;left:25%;opacity:0.35;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#0088dd;top:10%;left:85%;opacity:0.25;"></div>
+      </div>
+      <div class="mock-nav" style="border-bottom: 1px solid #dce8f5;">
+        <div class="logo" style="color:#0a2540;">Portfolio</div>
+        <div class="nav-links" style="color:#4a6a8a;">
+          <span>About</span><span>Work</span><span style="color:#0066cc; font-weight:600;">Contact</span>
+        </div>
+      </div>
+      <div class="mock-hero">
+        <h2 style="color:#0a2540;">Hello, I'm Ayush</h2>
+        <p style="color:#4a6a8a;">Full-stack developer crafting digital experiences</p>
+        <button class="mock-btn" style="background:#0066cc; color:#fff;">View Projects</button>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card" style="background:rgba(0,102,204,0.05); border:1px solid #d0e3f5;">
+          <h3 style="color:#0a2540;">Project One</h3>
+          <p style="color:#6a8aaa;">Built with React</p>
+          <span class="tag" style="background:rgba(0,102,204,0.08); color:#0066cc; border:1px solid rgba(0,102,204,0.2);">React</span>
+        </div>
+        <div class="mock-card" style="background:rgba(0,102,204,0.05); border:1px solid #d0e3f5;">
+          <h3 style="color:#0a2540;">Project Two</h3>
+          <p style="color:#6a8aaa;">Real-time dashboard</p>
+          <span class="tag" style="background:rgba(0,102,204,0.08); color:#0066cc; border:1px solid rgba(0,102,204,0.2);">Next.js</span>
+        </div>
+      </div>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#f5f9ff;"></div><div class="swatch-label">bg</div><div class="swatch-hex">#f5f9ff</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#e8f0fa;"></div><div class="swatch-label">surface</div><div class="swatch-hex">#e8f0fa</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0066cc;"></div><div class="swatch-label">accent</div><div class="swatch-hex">#0066cc</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0a2540;"></div><div class="swatch-label">text</div><div class="swatch-hex">#0a2540</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#4a6a8a;"></div><div class="swatch-label">textSub</div><div class="swatch-hex">#4a6a8a</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0077dd;"></div><div class="swatch-label">particles</div><div class="swatch-hex">#0077dd</div></div>
+    </div>
+    <p class="vibe-desc">Calm, deep, professional — like floating underwater. Blue particles drift like bubbles.</p>
+  </div>
+
+  <!-- OPTION B: SUNRISE / GOLDEN HOUR -->
+  <div class="palette">
+    <div class="palette-header" style="background:#fffaf5; color:#2a1a0a;">
+      B: SUNRISE <span class="badge" style="background:#e06820;color:#fff;">Golden Hour</span>
+    </div>
+    <div class="mock-site" style="background:#fffbf5;">
+      <div class="vibe-gradient" style="background: radial-gradient(ellipse 70% 60% at 50% 70%, rgba(224,104,32,0.07) 0%, rgba(255,160,60,0.03) 40%, transparent 70%);"></div>
+      <div class="particles">
+        <div class="dot" style="width:3px;height:3px;background:#e08030;top:12%;left:25%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#d06020;top:30%;left:70%;opacity:0.35;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#cc7733;top:50%;left:35%;opacity:0.2;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#e09040;top:65%;left:78%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#d07030;top:40%;left:12%;opacity:0.25;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#cc8844;top:75%;left:50%;opacity:0.2;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#e08030;top:85%;left:20%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#d06020;top:8%;left:88%;opacity:0.25;"></div>
+      </div>
+      <div class="mock-nav" style="border-bottom: 1px solid #f0e0d0;">
+        <div class="logo" style="color:#2a1a0a;">Portfolio</div>
+        <div class="nav-links" style="color:#7a5a3a;">
+          <span>About</span><span>Work</span><span style="color:#d05a10; font-weight:600;">Contact</span>
+        </div>
+      </div>
+      <div class="mock-hero">
+        <h2 style="color:#2a1a0a;">Hello, I'm Ayush</h2>
+        <p style="color:#7a5a3a;">Full-stack developer crafting digital experiences</p>
+        <button class="mock-btn" style="background:#e06820; color:#fff;">View Projects</button>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card" style="background:rgba(224,104,32,0.05); border:1px solid #f0dcc8;">
+          <h3 style="color:#2a1a0a;">Project One</h3>
+          <p style="color:#9a7a5a;">Built with React</p>
+          <span class="tag" style="background:rgba(224,104,32,0.08); color:#d05a10; border:1px solid rgba(224,104,32,0.2);">React</span>
+        </div>
+        <div class="mock-card" style="background:rgba(224,104,32,0.05); border:1px solid #f0dcc8;">
+          <h3 style="color:#2a1a0a;">Project Two</h3>
+          <p style="color:#9a7a5a;">Real-time dashboard</p>
+          <span class="tag" style="background:rgba(224,104,32,0.08); color:#d05a10; border:1px solid rgba(224,104,32,0.2);">Next.js</span>
+        </div>
+      </div>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#fffbf5;"></div><div class="swatch-label">bg</div><div class="swatch-hex">#fffbf5</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#f5ece0;"></div><div class="swatch-label">surface</div><div class="swatch-hex">#f5ece0</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#e06820;"></div><div class="swatch-label">accent</div><div class="swatch-hex">#e06820</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#2a1a0a;"></div><div class="swatch-label">text</div><div class="swatch-hex">#2a1a0a</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#7a5a3a;"></div><div class="swatch-label">textSub</div><div class="swatch-hex">#7a5a3a</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#e08030;"></div><div class="swatch-label">particles</div><div class="swatch-hex">#e08030</div></div>
+    </div>
+    <p class="vibe-desc">Warm, energetic, inviting — like dawn breaking. Amber particles float like embers.</p>
+  </div>
+
+  <!-- OPTION C: AURORA / ELECTRIC -->
+  <div class="palette">
+    <div class="palette-header" style="background:#f5f5ff; color:#1a1040;">
+      C: AURORA <span class="badge" style="background:#6c2bd9;color:#fff;">Electric</span>
+    </div>
+    <div class="mock-site" style="background:#f8f6ff;">
+      <div class="vibe-gradient" style="background: radial-gradient(ellipse 70% 60% at 50% 70%, rgba(108,43,217,0.06) 0%, rgba(140,80,255,0.03) 40%, transparent 70%);"></div>
+      <div class="particles">
+        <div class="dot" style="width:3px;height:3px;background:#7c3aed;top:18%;left:22%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#8b5cf6;top:28%;left:68%;opacity:0.35;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#6d28d9;top:48%;left:42%;opacity:0.25;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#7c3aed;top:62%;left:82%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#8b5cf6;top:38%;left:8%;opacity:0.25;"></div>
+        <div class="dot" style="width:3px;height:3px;background:#6d28d9;top:72%;left:52%;opacity:0.2;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#7c3aed;top:82%;left:30%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#8b5cf6;top:8%;left:90%;opacity:0.2;"></div>
+      </div>
+      <div class="mock-nav" style="border-bottom: 1px solid #e8e0f5;">
+        <div class="logo" style="color:#1a1040;">Portfolio</div>
+        <div class="nav-links" style="color:#5a4a7a;">
+          <span>About</span><span>Work</span><span style="color:#6c2bd9; font-weight:600;">Contact</span>
+        </div>
+      </div>
+      <div class="mock-hero">
+        <h2 style="color:#1a1040;">Hello, I'm Ayush</h2>
+        <p style="color:#5a4a7a;">Full-stack developer crafting digital experiences</p>
+        <button class="mock-btn" style="background:#6c2bd9; color:#fff;">View Projects</button>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card" style="background:rgba(108,43,217,0.04); border:1px solid #e0d8f0;">
+          <h3 style="color:#1a1040;">Project One</h3>
+          <p style="color:#7a6a9a;">Built with React</p>
+          <span class="tag" style="background:rgba(108,43,217,0.07); color:#6c2bd9; border:1px solid rgba(108,43,217,0.2);">React</span>
+        </div>
+        <div class="mock-card" style="background:rgba(108,43,217,0.04); border:1px solid #e0d8f0;">
+          <h3 style="color:#1a1040;">Project Two</h3>
+          <p style="color:#7a6a9a;">Real-time dashboard</p>
+          <span class="tag" style="background:rgba(108,43,217,0.07); color:#6c2bd9; border:1px solid rgba(108,43,217,0.2);">Next.js</span>
+        </div>
+      </div>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#f8f6ff;"></div><div class="swatch-label">bg</div><div class="swatch-hex">#f8f6ff</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#eeebf8;"></div><div class="swatch-label">surface</div><div class="swatch-hex">#eeebf8</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#6c2bd9;"></div><div class="swatch-label">accent</div><div class="swatch-hex">#6c2bd9</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1a1040;"></div><div class="swatch-label">text</div><div class="swatch-hex">#1a1040</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#5a4a7a;"></div><div class="swatch-label">textSub</div><div class="swatch-hex">#5a4a7a</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#7c3aed;"></div><div class="swatch-label">particles</div><div class="swatch-hex">#7c3aed</div></div>
+    </div>
+    <p class="vibe-desc">Futuristic, creative, bold — like northern lights. Purple particles shimmer like electric sparks.</p>
+  </div>
+
+</div>
+
+<!-- DARK MODE REFERENCE -->
+<p class="section-label" style="margin-top: 12px;">Dark Mode Reference (current)</p>
+<div class="row" style="max-width: 500px;">
+  <div class="palette">
+    <div class="palette-header" style="background:#0a0a0a; color:#e8e8e8;">
+      DARK MODE <span class="badge" style="background:#c8ff00;color:#000;">Space</span>
+    </div>
+    <div class="mock-site" style="background:#0a0a0a;">
+      <div class="vibe-gradient" style="background: radial-gradient(ellipse 60% 60% at 50% 60%, rgba(200,255,0,0.04) 0%, transparent 70%);"></div>
+      <div class="particles">
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:12%;left:20%;opacity:0.5;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:30%;left:65%;opacity:0.4;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:50%;left:38%;opacity:0.3;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:68%;left:80%;opacity:0.45;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:40%;left:10%;opacity:0.35;"></div>
+        <div class="dot" style="width:2px;height:2px;background:#c8ff00;top:78%;left:55%;opacity:0.3;"></div>
+      </div>
+      <div class="mock-nav" style="border-bottom: 1px solid #1a1a1a;">
+        <div class="logo" style="color:#e8e8e8;">Portfolio</div>
+        <div class="nav-links" style="color:#888;">
+          <span>About</span><span>Work</span><span style="color:#c8ff00; font-weight:600;">Contact</span>
+        </div>
+      </div>
+      <div class="mock-hero">
+        <h2 style="color:#e8e8e8;">Hello, I'm Ayush</h2>
+        <p style="color:#888;">Full-stack developer crafting digital experiences</p>
+        <button class="mock-btn" style="background:#c8ff00; color:#000;">View Projects</button>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card" style="background:#111; border:1px solid #1a1a1a;">
+          <h3 style="color:#e8e8e8;">Project One</h3>
+          <p style="color:#555;">Built with React</p>
+          <span class="tag" style="background:rgba(200,255,0,0.06); color:#c8ff00; border:1px solid rgba(200,255,0,0.18);">React</span>
+        </div>
+        <div class="mock-card" style="background:#111; border:1px solid #1a1a1a;">
+          <h3 style="color:#e8e8e8;">Project Two</h3>
+          <p style="color:#555;">Real-time dashboard</p>
+          <span class="tag" style="background:rgba(200,255,0,0.06); color:#c8ff00; border:1px solid rgba(200,255,0,0.18);">Next.js</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

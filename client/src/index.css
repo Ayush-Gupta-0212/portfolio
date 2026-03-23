@@ -1,0 +1,369 @@
+@import "tailwindcss";
+
+/* ============================
+   CSS CUSTOM PROPERTIES
+   ============================ */
+:root {
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-border: #1f1f1f;
+  --color-text: #e8e8e8;
+  --color-muted: #555555;
+  --color-accent: #c8ff00;
+  --color-accent-dim: rgba(200, 255, 0, 0.15);
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --cursor-size: 12px;
+  --cursor-size-hover: 40px;
+}
+
+/* ============================
+   RESET & BASE
+   ============================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: auto;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  cursor: none;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================
+   CUSTOM SCROLLBAR
+   ============================ */
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+
+/* ============================
+   CUSTOM CURSOR
+   ============================ */
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  background: var(--color-accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, background 0.3s ease;
+  mix-blend-mode: difference;
+}
+
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(200, 255, 0, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease, border-color 0.3s ease;
+}
+
+.cursor-dot.hovering {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+}
+
+.cursor-ring.hovering {
+  width: 60px;
+  height: 60px;
+  border-color: rgba(200, 255, 0, 0.8);
+}
+
+/* Light theme cursor overrides */
+[data-theme='light'] .cursor-dot {
+  background: #e06820;
+  mix-blend-mode: normal;
+}
+[data-theme='light'] .cursor-dot.hovering {
+  background: #e06820;
+}
+[data-theme='light'] .cursor-ring {
+  border-color: rgba(224, 104, 32, 0.4);
+}
+[data-theme='light'] .cursor-ring.hovering {
+  border-color: rgba(224, 104, 32, 0.85);
+}
+
+/* ============================
+   NOISE OVERLAY
+   ============================ */
+.noise-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.04;
+}
+
+/* ============================
+   PRELOADER
+   ============================ */
+.preloader {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.preloader-counter {
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 15vw, 12rem);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preloader-counter span {
+  color: var(--color-accent);
+}
+
+.preloader-line {
+  width: 0%;
+  height: 1px;
+  background: var(--color-accent);
+  position: absolute;
+  bottom: 0;
+}
+
+/* ============================
+   NAVIGATION
+   ============================ */
+.nav-logo {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ============================
+   SECTION BASE
+   ============================ */
+section {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ============================
+   TEXT ANIMATIONS
+   ============================ */
+.char-reveal {
+  overflow: hidden;
+  display: inline-block;
+}
+
+.char-reveal span {
+  display: inline-block;
+  transform: translateY(110%);
+}
+
+.glitch {
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+
+.glitch::before {
+  color: #ff0055;
+  animation: glitch-before 3s infinite;
+  transform: translateX(-2px);
+}
+
+.glitch::after {
+  color: #00ffcc;
+  animation: glitch-after 3s infinite;
+  transform: translateX(2px);
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+
+@keyframes glitch-before {
+  0%, 90%, 100% { transform: translateX(-2px); opacity: 1; }
+  91% { transform: translateX(2px); opacity: 0.8; }
+  92% { transform: translateX(-5px); opacity: 0.6; }
+  93% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes glitch-after {
+  0%, 85%, 100% { transform: translateX(2px); opacity: 1; }
+  86% { transform: translateX(-3px); opacity: 0.7; }
+  87% { transform: translateX(4px); opacity: 0.9; }
+  88% { transform: translateX(0); opacity: 1; }
+}
+
+/* ============================
+   MAGNETIC BUTTON
+   ============================ */
+.magnetic-btn {
+  position: relative;
+  display: inline-block;
+  cursor: none;
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ============================
+   SKILL BARS
+   ============================ */
+.skill-bar-fill {
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.skill-bar-fill.visible {
+  transform: scaleX(1);
+}
+
+/* ============================
+   PROJECT CARD TILT
+   ============================ */
+.project-card {
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+}
+
+.project-card-inner {
+  transform: translateZ(20px);
+}
+
+/* ============================
+   GRADIENT ACCENTS
+   ============================ */
+.gradient-accent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================
+   SECTION NUMBER
+   ============================ */
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ============================
+   PARTICLES
+   ============================ */
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================
+   CONTACT FORM
+   ============================ */
+.form-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  padding: 1rem 0;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  border-bottom-color: var(--color-accent);
+}
+
+.form-input::placeholder {
+  color: var(--color-muted);
+}
+
+/* ============================
+   SCROLLING MARQUEE
+   ============================ */
+.marquee-track {
+  display: flex;
+  gap: 3rem;
+  padding: 0.5rem 0;
+  white-space: nowrap;
+  width: max-content;
+  animation: marquee-scroll 18s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track.slow {
+  animation-duration: 50s;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-1200px); }
+}
+
+/* ============================
+   RESPONSIVE — TOUCH / MOBILE
+   ============================ */
+@media (pointer: coarse) {
+  body { cursor: auto !important; }
+  button { cursor: pointer !important; }
+  a { cursor: pointer !important; }
+}
+
+@media (max-width: 768px) {
+  html { font-size: 15px; }
+}
+
+/* ============================
+   MISC UTILITIES
+   ============================ */
+.border-line {
+  height: 1px;
+  background: var(--color-border);
+}
+
+.accent-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}

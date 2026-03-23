@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.env.*
+*.local
+.DS_Store
+.claude
+color-preview.html
+client/eslint-report.json
+server/seedSkills.js
+server/seed.js
