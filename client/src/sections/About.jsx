@@ -1,7 +1,14 @@
-import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { memo, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { gsap, prefersReducedMotion } from '../lib/gsap';
+import ScrollRevealText from '../components/reveal/ScrollRevealText';
+import BlurReveal from '../components/reveal/BlurReveal';
+import LineDivider from '../components/reveal/LineDivider';
+import FadeUp from '../components/reveal/FadeUp';
+import RollText from '../components/reveal/RollText';
+import CountUp from '../components/reveal/CountUp';
+import SectionLabel from '../components/reveal/SectionLabel';
 
 const stats = [
   { value: '5+', label: 'Projects Built' },
@@ -15,401 +22,209 @@ const links = [
   { label: 'Resume', href: 'https://drive.google.com/file/d/1t2lAIj8f-tA10wilV_R4o7EIoYW6DqoL/view?usp=sharing' },
 ];
 
-const About = () => {
-  const ref = useRef(null);
+/*
+ * The statement is split into lines/chars by GSAP, so it must never re-render
+ * with different children. Highlight colour comes from a CSS variable instead
+ * of props, and the trailing slot is where the hero monogram lands on scroll.
+ */
+const Statement = memo(() => (
+  <>
+    <span className="statement-indent" aria-hidden="true" />
+    Hey, I&apos;m Ayush — a <span className="hl">full-stack developer</span> and{' '}
+    <span className="hl">creative coder</span> building things that live on the internet. I craft
+    immersive web experiences that blend aesthetic finesse with{' '}
+    <span className="hl">technical precision.</span>
+    <span data-monogram-dock className="monogram-dock" aria-hidden="true" />
+  </>
+));
+Statement.displayName = 'Statement';
+
+const mono = "'Space Mono', monospace";
+
+/* Portrait that wipes up out of a clip mask, then tilts toward the cursor */
+const PhotoCard = ({ theme, mode, isMobile }) => {
+  const wrapRef = useRef(null);
+  const tiltRef = useRef(null);
   const imgRef = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return undefined;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: wrapRef.current, start: 'top 85%', toggleActions: 'play none none reverse' },
+      });
+      tl.fromTo(tiltRef.current, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'expo.inOut' })
+        .fromTo(imgRef.current, { scale: 1.35 }, { scale: 1, duration: 1.6, ease: 'expo.out' }, 0.15);
+    }, wrapRef);
+    return () => ctx.revert();
+  }, []);
+
+  const onMove = (e) => {
+    if (isMobile) return;
+    const el = tiltRef.current;
+    const r = el.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width - 0.5) * 12;
+    const y = ((e.clientY - r.top) / r.height - 0.5) * -12;
+    el.style.transform = `perspective(900px) rotateY(${x}deg) rotateX(${y}deg) scale(1.02)`;
+  };
+  const onLeave = () => { if (tiltRef.current) tiltRef.current.style.transform = ''; };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', maxWidth: isMobile ? 360 : 'none' }}>
+      <div style={{
+        position: 'absolute', inset: -50, zIndex: 0, pointerEvents: 'none',
+        background: `radial-gradient(ellipse at 50% 40%, ${theme.accent}1f, transparent 65%)`, filter: 'blur(30px)',
+      }} />
+      <div
+        ref={tiltRef}
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+        style={{ position: 'relative', zIndex: 1, overflow: 'hidden', transition: 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)', cursor: 'none' }}
+      >
+        <img
+          ref={imgRef}
+          src="/ayush-portrait.jpg"
+          alt="Ayush Gupta"
+          style={{
+            width: '100%', display: 'block', aspectRatio: '4/5',
+            objectFit: 'cover', objectPosition: 'center top',
+            filter: 'contrast(1.06) brightness(0.95) saturate(0.9)',
+          }}
+        />
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', pointerEvents: 'none',
+          background: mode === 'light'
+            ? `linear-gradient(to top, ${theme.bg}88 0%, transparent 100%)`
+            : `linear-gradient(to top, ${theme.bg} 0%, ${theme.bg}aa 35%, transparent 100%)`,
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${theme.bg}0a 2px, ${theme.bg}0a 4px)`,
+        }} />
+        <div style={{
+          position: 'absolute', left: '1rem', bottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+          fontFamily: mono, fontSize: '0.6rem', letterSpacing: '0.14em', color: theme.text,
+        }}>
+          <span className="pulse-dot" />
+          OPEN TO OPPORTUNITIES
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const About = () => {
   const { theme, mode } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  const handleMouseMove = (e) => {
-    const el = imgRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 14;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -14;
-    el.style.transform = `perspective(800px) rotateY(${x}deg) rotateX(${y}deg) scale(1.02)`;
-  };
-  const handleMouseLeave = () => {
-    if (imgRef.current)
-      imgRef.current.style.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg) scale(1)';
+  const statementStyle = {
+    fontFamily: "'Space Grotesk', sans-serif",
+    fontWeight: 500,
+    fontSize: isMobile ? 'clamp(1.7rem, 8vw, 2.4rem)' : 'clamp(2.2rem, 4.3vw, 4.4rem)',
+    lineHeight: 1.1,
+    letterSpacing: '-0.035em',
+    color: theme.text,
   };
 
-  const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.11 } } };
-  const item = {
-    hidden: { opacity: 0, y: 36 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
-  };
+  return (
+    <section
+      id="about"
+      style={{
+        position: 'relative', zIndex: 3,
+        padding: isMobile ? '6rem 1.5rem 5rem' : '10rem 2rem 8rem',
+        maxWidth: '1400px', margin: '0 auto',
+      }}
+    >
+      {/* Statement — revealed line by line, filled as you scroll */}
+      <div style={{ position: 'relative' }}>
+        <div style={isMobile ? { marginBottom: '2rem' } : { position: 'absolute', left: 0, top: '0.9rem' }}>
+          <SectionLabel number="01" label="ABOUT" theme={theme} />
+        </div>
+        <ScrollRevealText as="h2" style={statementStyle}>
+          <Statement />
+        </ScrollRevealText>
+      </div>
 
-  /* ─────────── MOBILE LAYOUT ─────────── */
-  if (isMobile) {
-    return (
-      <section id="about" ref={ref} style={{ minHeight: '100vh', padding: '5rem 1.5rem' }}>
+      <LineDivider
+        color={theme.border}
+        markColor={theme.textSub}
+        markAt={isMobile ? 0.5 : 0.6667}
+        style={{ margin: isMobile ? '3.5rem 0 3rem' : '7rem 0 5rem' }}
+      />
 
-        {/* Section label */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}
-        >
-          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>01</span>
-          <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-          <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>ABOUT</span>
-        </motion.div>
+      {/* Portrait · philosophy · bio + links */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(12, minmax(0, 1fr))',
+        gap: isMobile ? '2.5rem' : '1.5rem',
+        alignItems: 'start',
+      }}>
+        <div style={{ gridColumn: isMobile ? 'auto' : '1 / span 4' }}>
+          <PhotoCard theme={theme} mode={mode} isMobile={isMobile} />
+        </div>
 
-        {/* Intro row: name/status left, photo right */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem', marginBottom: '2rem' }}
-        >
-          {/* Name + status */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <span style={{
-                fontFamily: "'Space Mono', monospace", fontSize: '0.9rem',
-                color: theme.muted, letterSpacing: '0.15em', display: 'block', marginBottom: '0.4rem',
-              }}>
-                HEY, I'M
-              </span>
-              <h2 style={{
-                fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 800,
-                letterSpacing: '-0.04em', lineHeight: 1, color: theme.text,
-              }}>
-                Ayush
-              </h2>
-              <h2 style={{
-                fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 800,
-                letterSpacing: '-0.04em', lineHeight: 1,
-                WebkitTextStroke: `2px ${theme.accent}`,
-                color: 'transparent',
-              }}>
-                Gupta.
-              </h2>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <motion.div
-                animate={{ opacity: [1, 0.2, 1] }}
-                transition={{ duration: 1.6, repeat: Infinity }}
-                style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }}
-              />
-              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: '#22c55e', letterSpacing: '0.1em' }}>OPEN TO WORK</span>
-              <span style={{ color: theme.border, fontSize: '0.75rem' }}>·</span>
-              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>INDIA 🇮🇳</span>
-            </div>
-          </div>
+        <div style={{ gridColumn: isMobile ? 'auto' : '6 / span 3' }}>
+          <BlurReveal as="span" by="chars" style={{ display: 'block', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.accent, marginBottom: '1.2rem' }}>
+            ✦ PHILOSOPHY
+          </BlurReveal>
+          <BlurReveal as="p" style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', lineHeight: 1.35, fontWeight: 500, letterSpacing: '-0.02em', color: theme.text }}>
+            The best software is both functional and beautiful — and I refuse to compromise on either.
+          </BlurReveal>
+        </div>
 
-          {/* Photo */}
-          <div style={{
-            width: '110px', flexShrink: 0,
-            overflow: 'hidden',
-            position: 'relative',
-          }}>
-            <img
-              src="/ayush2.png"
-              alt="Ayush Gupta"
-              style={{
-                width: '100%', aspectRatio: '3/4',
-                objectFit: 'cover', objectPosition: 'center top',
-                display: 'block',
-                filter: 'contrast(1.06) brightness(0.95) saturate(0.9)',
-              }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Content */}
-        <motion.div
-          variants={stagger} initial="hidden" animate={inView ? 'visible' : 'hidden'}
-          style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
-        >
-          {/* Bio */}
-          <div>
-            <motion.p variants={item} style={{ color: theme.textSub, lineHeight: 1.85, fontSize: '0.95rem' }}>
-              I'm a full-stack developer passionate about building things that live on the internet. I specialize in crafting web experiences that blend technical precision with clean, functional code.
-            </motion.p>
-            <motion.p variants={item} style={{ color: theme.muted, lineHeight: 1.85, fontSize: '0.92rem', marginTop: '1rem' }}>
-              Currently pursuing my degree while building production-grade applications. I believe great software is both functional and well-built — and I don't compromise on either.
-            </motion.p>
-          </div>
-
-          {/* Links */}
-          <motion.div variants={item} style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+        <FadeUp style={{ gridColumn: isMobile ? 'auto' : '9 / span 4' }}>
+          <p style={{ color: theme.textSub, lineHeight: 1.85, fontSize: '1rem', marginBottom: '2.2rem', maxWidth: 420 }}>
+            Currently pursuing my degree while simultaneously building production-grade applications — from scalable
+            backends and clean APIs to fast, polished frontends.
+          </p>
+          <div style={{ display: 'flex', gap: '1.75rem', flexWrap: 'wrap' }}>
             {links.map(({ label, href }) => (
               <a
                 key={label}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  fontFamily: "'Space Mono', monospace", fontSize: '0.72rem',
-                  color: theme.accent, textDecoration: 'none',
-                  letterSpacing: '0.1em',
-                  borderBottom: `1px solid ${theme.accentBorder}`,
-                  paddingBottom: '2px',
-                }}
+                className="roll-link"
+                style={{ fontFamily: mono, fontSize: '0.75rem', letterSpacing: '0.12em', color: theme.accent, textDecoration: 'none' }}
               >
-                {label} ↗
+                <RollText text={`${label.toUpperCase()} ↗`} />
               </a>
             ))}
-          </motion.div>
-
-          {/* Stats strip */}
-          <motion.div
-            variants={item}
-            style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-              borderTop: `1px solid ${theme.border}`,
-            }}
-          >
-            {stats.map(({ value, label }, i) => (
-              <div
-                key={label}
-                style={{
-                  padding: '1.1rem 0.75rem',
-                  borderRight: i < stats.length - 1 ? `1px solid ${theme.border}` : 'none',
-                }}
-              >
-                <div style={{
-                  fontSize: 'clamp(1.4rem, 5vw, 2rem)', fontWeight: 700,
-                  color: theme.accent, letterSpacing: '-0.04em',
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  lineHeight: 1, marginBottom: '0.35rem',
-                }}>
-                  {value}
-                </div>
-                <div style={{
-                  color: theme.muted, fontSize: '0.58rem',
-                  letterSpacing: '0.08em', fontFamily: "'Space Mono', monospace",
-                  textTransform: 'uppercase', lineHeight: 1.5,
-                }}>
-                  {label}
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-      </section>
-    );
-  }
-
-  /* ─────────── DESKTOP LAYOUT ─────────── */
-  return (
-    <section id="about" ref={ref} style={{
-      minHeight: '100vh', padding: '8rem 2rem',
-      maxWidth: '1400px', margin: '0 auto',
-    }}>
-      {/* Section label */}
-      <motion.div
-        initial={{ opacity: 0, x: -30 }}
-        animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '5rem' }}
-      >
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>01</span>
-        <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-        <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>ABOUT</span>
-      </motion.div>
-
-      {/* Main grid: text | photo */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '5rem', alignItems: 'start' }}>
-
-        {/* LEFT: text + stats */}
-        <motion.div variants={stagger} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
-          <motion.div variants={item} style={{ marginBottom: '1.5rem' }}>
-            <span style={{
-              fontFamily: "'Space Mono', monospace", fontSize: '1.1rem',
-              color: theme.muted, letterSpacing: '0.15em', display: 'block', marginBottom: '0.6rem',
-            }}>
-              HEY, I'M
-            </span>
-            <h2 style={{
-              fontSize: 'clamp(2.8rem, 5vw, 4.5rem)', fontWeight: 800,
-              letterSpacing: '-0.04em', lineHeight: 1, color: theme.text,
-            }}>
-              Ayush
-            </h2>
-            <h2 style={{
-              fontSize: 'clamp(2.8rem, 5vw, 4.5rem)', fontWeight: 800,
-              letterSpacing: '-0.04em', lineHeight: 1,
-              WebkitTextStroke: `2px ${theme.accent}`,
-              color: 'transparent',
-            }}>
-              Gupta.
-            </h2>
-          </motion.div>
-
-          {[
-            "I'm a full-stack developer and creative coder passionate about building things that live on the internet. I specialize in crafting immersive web experiences that blend aesthetic finesse with technical precision.",
-            "Currently pursuing my degree while simultaneously building production-grade applications. I believe the best software is both functional and beautiful — and I refuse to compromise on either.",
-          ].map((text, i) => (
-            <motion.p key={i} variants={item} style={{
-              color: i === 0 ? theme.textSub : theme.muted,
-              lineHeight: 1.9, marginBottom: '1.8rem', fontSize: '1.02rem',
-            }}>{text}</motion.p>
-          ))}
-
-          {/* Links */}
-          <motion.div variants={item} style={{ display: 'flex', gap: '1.5rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
-            {links.map(({ label, href }) => (
-              <a
-                key={label} href={href} target="_blank" rel="noopener noreferrer"
-                style={{
-                  fontFamily: "'Space Mono', monospace", fontSize: '0.75rem',
-                  color: theme.accent, textDecoration: 'none', letterSpacing: '0.1em',
-                  borderBottom: `1px solid ${theme.accentBorder}`, paddingBottom: '2px',
-                  transition: 'border-color 0.3s ease, opacity 0.3s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.opacity = '0.75'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = theme.accentBorder; e.currentTarget.style.opacity = '1'; }}
-              >
-                {label} ↗
-              </a>
-            ))}
-          </motion.div>
-
-          {/* Stats strip */}
-          <motion.div
-            variants={item}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: `1px solid ${theme.border}`, marginTop: '0.5rem' }}
-          >
-            {stats.map(({ value, label }, i) => (
-              <motion.div
-                key={label}
-                whileHover={{ y: -2 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                style={{
-                  padding: '1.6rem 1.4rem 1.4rem',
-                  borderRight: i < stats.length - 1 ? `1px solid ${theme.border}` : 'none',
-                  position: 'relative', cursor: 'default',
-                }}
-              >
-                <motion.div
-                  initial={{ scaleX: 0 }} whileHover={{ scaleX: 1 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    position: 'absolute', top: -1, left: 0, right: 0, height: 2,
-                    background: `linear-gradient(90deg, ${theme.accent}, transparent)`,
-                    transformOrigin: 'left',
-                  }}
-                />
-                <div style={{
-                  fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 700,
-                  color: theme.accent, letterSpacing: '-0.05em',
-                  fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1, marginBottom: '0.5rem',
-                }}>
-                  {value}
-                </div>
-                <div style={{
-                  color: theme.muted, fontSize: '0.63rem',
-                  letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace",
-                  textTransform: 'uppercase', lineHeight: 1.5,
-                }}>
-                  {label}
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* RIGHT: photo */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 1, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          style={{ position: 'relative' }}
-        >
-          <div style={{
-            position: 'absolute', inset: -60,
-            background: `radial-gradient(ellipse at 50% 40%, ${theme.accent}22, transparent 65%)`,
-            filter: 'blur(30px)', zIndex: 0, pointerEvents: 'none',
-          }} />
-
-          <motion.div
-            initial={{ scaleY: 0, opacity: 0 }}
-            animate={inView ? { scaleY: 1, opacity: 1 } : {}}
-            transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              position: 'absolute', left: -20, top: '10%',
-              width: 1, height: '80%',
-              background: `linear-gradient(to bottom, transparent, ${theme.accent}80, transparent)`,
-              transformOrigin: 'top', zIndex: 1,
-            }}
-          />
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={inView ? { opacity: 1 } : {}}
-            transition={{ delay: 0.7, duration: 0.8 }}
-            style={{
-              position: 'absolute', top: -24, right: -24,
-              width: 80, height: 80,
-              backgroundImage: `radial-gradient(circle, ${theme.accent}55 1px, transparent 1px)`,
-              backgroundSize: '10px 10px', zIndex: 0,
-            }}
-          />
-
-          <div
-            ref={imgRef}
-            style={{
-              position: 'relative', zIndex: 1, overflow: 'hidden',
-              cursor: 'none', transition: 'box-shadow 0.4s ease', transformStyle: 'preserve-3d',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 24px 60px ${theme.accent}20`; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; if (imgRef.current) imgRef.current.style.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg) scale(1)'; }}
-            onMouseMove={handleMouseMove}
-          >
-            <img
-              src="/ayush2.png"
-              alt="Ayush Gupta"
-              style={{
-                width: '100%', display: 'block', aspectRatio: '3/4',
-                objectFit: 'cover', objectPosition: 'center top',
-                filter: 'contrast(1.06) brightness(0.95) saturate(0.9)',
-                transition: 'filter 0.5s ease',
-              }}
-              onMouseEnter={e => e.target.style.filter = 'contrast(1.1) brightness(1.03) saturate(1.05)'}
-              onMouseLeave={e => e.target.style.filter = 'contrast(1.06) brightness(0.95) saturate(0.9)'}
-            />
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
-              background: mode === 'light'
-                ? `linear-gradient(to top, ${theme.bg}88 0%, ${theme.bg}44 40%, transparent 100%)`
-                : `linear-gradient(to top, ${theme.bg} 0%, ${theme.bg}cc 30%, ${theme.bg}55 60%, transparent 100%)`,
-              pointerEvents: 'none', zIndex: 2,
-            }} />
-            <div style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${theme.bg}08 2px, ${theme.bg}08 4px)`,
-              pointerEvents: 'none', zIndex: 2,
-            }} />
-            <div style={{
-              position: 'absolute', top: 0, right: 0, width: 80, height: 80,
-              background: `linear-gradient(135deg, transparent 50%, ${theme.accent}18 100%)`,
-              zIndex: 3, pointerEvents: 'none',
-            }} />
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.9, duration: 0.6 }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.2rem', justifyContent: 'center' }}
-          >
-            <motion.div
-              animate={{ opacity: [1, 0.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }}
-            />
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.62rem', color: theme.muted, letterSpacing: '0.12em' }}>
-              OPEN TO OPPORTUNITIES
-            </span>
-          </motion.div>
-        </motion.div>
+        </FadeUp>
       </div>
+
+      {/* Stats */}
+      <FadeUp
+        stagger={0.12}
+        style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          borderTop: `1px solid ${theme.border}`, marginTop: isMobile ? '3.5rem' : '6rem',
+        }}
+      >
+        {stats.map(({ value, label }, i) => (
+          <div
+            key={label}
+            className="about-stat"
+            style={{
+              padding: isMobile ? '1.2rem 0.75rem' : '1.8rem 1.5rem 1.5rem',
+              borderRight: i < stats.length - 1 ? `1px solid ${theme.border}` : 'none',
+              position: 'relative',
+            }}
+          >
+            <CountUp
+              value={value}
+              style={{
+                fontSize: isMobile ? 'clamp(1.5rem, 6vw, 2rem)' : 'clamp(2rem, 3.4vw, 3rem)',
+                fontWeight: 700, color: theme.accent, letterSpacing: '-0.05em', lineHeight: 1, marginBottom: '0.6rem',
+              }}
+            />
+            <div style={{ color: theme.muted, fontSize: isMobile ? '0.56rem' : '0.64rem', letterSpacing: '0.1em', fontFamily: mono, textTransform: 'uppercase' }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </FadeUp>
     </section>
   );
 };

@@ -1,8 +1,12 @@
-import { useRef, useEffect, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { getProjects } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { gsap, ScrollTrigger, prefersReducedMotion } from '../lib/gsap';
+import SectionLabel from '../components/reveal/SectionLabel';
+import LineReveal from '../components/reveal/LineReveal';
+import BlurReveal from '../components/reveal/BlurReveal';
+import RollText from '../components/reveal/RollText';
 
 const FALLBACK_PROJECTS = [
   { _id: '1', title: 'Vice City — Smart City Web Platform', description: 'A full-stack smart city dashboard delivering real-time traffic alerts, live weather insights, local events, and nearby attractions — all unified with a Gemini-powered AI assistant for instant city queries.', tags: ['React', 'Node.js', 'MongoDB', 'Gemini AI', 'Maps API'], github: 'https://github.com/Ayush-Gupta-0212/Software-for-Smart-City', live: 'https://smart-city-frontend.onrender.com', featured: true, year: 2026, image: '/vice-city.png' },
@@ -10,175 +14,305 @@ const FALLBACK_PROJECTS = [
   { _id: '3', title: 'CineVerse — Movie Recommendation System', description: 'A full-stack recommendation engine using KNN collaborative filtering and OpenRouter LLMs to deliver personalised movie suggestions. Includes secure JWT authentication, advanced search, and a favorites management system.', tags: ['React', 'Python', 'FastAPI', 'KNN', 'LLM (OpenRouter)'], github: 'https://github.com/Ayush-Gupta-0212/CineVerse', live: 'https://github.com/Ayush-Gupta-0212/CineVerse', featured: true, year: 2025, image: '/cineverse.png' },
 ];
 
-const ProjectCard = ({ project, index, theme, isMobile }) => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  const [hovered, setHovered] = useState(false);
+const mono = "'Space Mono', monospace";
+const GITHUB_PROFILE = 'https://github.com/Ayush-Gupta-0212';
+const pad = (n) => String(n).padStart(2, '0');
+const setCursor = (mode) => window.dispatchEvent(new CustomEvent('cursor-mode', { detail: mode }));
+
+/* "Vice City — Smart City Web Platform" → big name + smaller subtitle */
+const splitTitle = (title = '') => {
+  const [name, ...rest] = title.split(' — ');
+  return { name, sub: rest.join(' — ') };
+};
+
+/* Divider on a panel's leading edge: vertical on the desktop track, horizontal when stacked */
+const PanelLine = ({ stacked, theme }) => (
+  <div
+    className={stacked ? 'work-line-h' : 'work-line'}
+    style={stacked
+      ? { position: 'absolute', left: 0, right: 0, top: 0, height: 1, background: theme.border, transformOrigin: '0% 50%' }
+      : { position: 'absolute', left: 0, top: 0, bottom: 0, width: 1, background: theme.border, transformOrigin: '50% 0%' }}
+  />
+);
+
+const WorkCard = ({ project, index, total, theme, stacked }) => {
+  const { name, sub } = splitTitle(project.title);
+  const href = project.live || project.github;
+  const showLive = project.live && project.live !== project.github;
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay: index * 0.12, ease: [0.16, 1, 0.3, 1] }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <article
+      className="work-card"
       style={{
-        position: 'relative', overflow: 'hidden', cursor: 'none',
-        border: `1px solid ${theme.border}`,
-        background: theme.bgAlt,
+        position: 'relative', flexShrink: 0,
+        width: stacked ? '100%' : '50vw', height: stacked ? 'auto' : '100%',
+        display: 'flex', alignItems: 'center',
+        padding: stacked ? '2.5rem 0' : '6rem 4vw 5rem',
       }}
     >
-      {/* Featured accent line */}
-      {project.featured && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '2px', zIndex: 3,
-          background: `linear-gradient(90deg, ${theme.accent}, #00ff88)`,
-        }} />
-      )}
+      <PanelLine stacked={stacked} theme={theme} />
+      <div className="work-inner" style={{ width: '100%', maxWidth: 620, margin: '0 auto', willChange: 'transform' }}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="work-media"
+          aria-label={`Open ${name}`}
+          style={{ '--card-border': theme.border }}
+          onMouseEnter={() => setCursor('view')}
+          onMouseLeave={() => setCursor(null)}
+        >
+          <div className="work-zoom">
+            <img src={project.image} alt={project.title} className="work-img" draggable="false" />
+          </div>
+        </a>
 
-      {/* Full image — natural aspect ratio */}
-      <motion.div
-        animate={{ scale: hovered ? 1.03 : 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{ lineHeight: 0 }}
-      >
-        <img
-          src={project.image}
-          alt={project.title}
-          style={{ width: '100%', height: 'auto', display: 'block' }}
-        />
-      </motion.div>
+        <div className="work-meta" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.4rem', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.15em', color: theme.muted }}>
+          <span>{pad(index + 1)} / {pad(total)}</span>
+          <span>{project.year}</span>
+        </div>
 
-      {/* Title strip */}
-      <div style={{
-        padding: isMobile ? '0.9rem 1.1rem' : '1rem 1.4rem',
-        borderTop: `1px solid ${theme.border}`,
-      }}>
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', color: theme.muted, letterSpacing: '0.12em', display: 'block', marginBottom: '0.3rem' }}>
-          {project.year}
-        </span>
-        <h3 style={{
-          fontSize: isMobile ? '0.95rem' : '1rem',
-          fontWeight: 700, letterSpacing: '-0.02em', color: theme.text, lineHeight: 1.3,
-        }}>
-          {project.title}
+        <h3 className="work-meta" style={{ marginTop: '0.6rem', fontSize: stacked ? '1.7rem' : 'clamp(1.6rem, 2.4vw, 2.4rem)', fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.05, color: theme.text }}>
+          {name}
+          {sub && (
+            <span style={{ display: 'block', fontSize: '0.48em', fontWeight: 500, letterSpacing: '-0.01em', color: theme.textSub, marginTop: '0.5rem' }}>
+              {sub}
+            </span>
+          )}
         </h3>
-      </div>
 
-      {/* Hover overlay — slides up over the whole card */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: hovered ? '0%' : '100%' }}
-        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          position: 'absolute', inset: 0, zIndex: 4,
-          background: `${theme.bg}f0`,
-          backdropFilter: 'blur(6px)',
-          padding: isMobile ? '1.25rem' : '1.75rem',
-          display: 'flex', flexDirection: 'column',
-          borderTop: `2px solid ${theme.accent}`,
-        }}
-      >
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.12em', marginBottom: '0.5rem' }}>
-          {project.year}
-        </span>
-        <h3 style={{
-          fontSize: isMobile ? '1rem' : '1.1rem',
-          fontWeight: 700, letterSpacing: '-0.02em', color: theme.text,
-          marginBottom: '0.85rem', lineHeight: 1.3,
-        }}>
-          {project.title}
-        </h3>
-        <p style={{
-          color: theme.muted, lineHeight: 1.75,
-          fontSize: isMobile ? '0.82rem' : '0.87rem',
-          flex: 1, overflow: 'hidden',
-        }}>
+        <p className="work-meta work-desc" style={{ marginTop: '0.9rem', color: theme.muted, fontSize: '0.9rem', lineHeight: 1.7 }}>
           {project.description}
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '1rem', marginBottom: '1rem' }}>
-          {project.tags.map(tag => (
-            <span key={tag} style={{
-              padding: '0.2rem 0.6rem',
-              background: theme.accentDim, color: theme.accent,
-              fontFamily: "'Space Mono', monospace", fontSize: '0.58rem',
-              letterSpacing: '0.07em', border: `1px solid ${theme.accentBorder}`,
-            }}>
+
+        <div className="work-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '1.1rem' }}>
+          {project.tags?.map((tag) => (
+            <span key={tag} style={{ padding: '0.25rem 0.6rem', fontFamily: mono, fontSize: '0.56rem', letterSpacing: '0.08em', color: theme.accent, background: theme.accentDim, border: `1px solid ${theme.accentBorder}` }}>
               {tag}
             </span>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '1.25rem' }}>
+
+        <div className="work-meta" style={{ display: 'flex', gap: '1.6rem', marginTop: '1.3rem', fontFamily: mono, fontSize: '0.72rem', letterSpacing: '0.12em' }}>
           {project.github && (
-            <a href={project.github} target="_blank" rel="noreferrer"
-              style={{ color: theme.accent, fontSize: '0.72rem', fontFamily: "'Space Mono', monospace", textDecoration: 'none', letterSpacing: '0.1em' }}
-            >GITHUB ↗</a>
+            <a href={project.github} target="_blank" rel="noopener noreferrer" className="roll-link" style={{ color: theme.accent, textDecoration: 'none' }}>
+              <RollText text="GITHUB ↗" />
+            </a>
           )}
-          {project.live && (
-            <a href={project.live} target="_blank" rel="noreferrer"
-              style={{ color: theme.accent, fontSize: '0.72rem', fontFamily: "'Space Mono', monospace", textDecoration: 'none', letterSpacing: '0.1em' }}
-            >LIVE ↗</a>
+          {showLive && (
+            <a href={project.live} target="_blank" rel="noopener noreferrer" className="roll-link" style={{ color: theme.accent, textDecoration: 'none' }}>
+              <RollText text="LIVE ↗" />
+            </a>
           )}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </article>
   );
 };
 
 const Projects = () => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-100px' });
   const { theme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [projects, setProjects] = useState(FALLBACK_PROJECTS);
+  const sectionRef = useRef(null);
+  const trackRef = useRef(null);
+  const barRef = useRef(null);
+  const plusRef = useRef(null);
+  const counterRef = useRef(null);
+  const reduced = prefersReducedMotion();
+  const stacked = isMobile || reduced;
 
   useEffect(() => {
     getProjects().then(res => { if (res.data?.length) setProjects(res.data); }).catch(() => {});
   }, []);
 
+  /*
+   * Desktop (after Trionn's selected-work track): the section pins and the
+   * track slides sideways. Each card rises from below as it travels in from
+   * the right, its divider draws down and its copy fades in on arrival.
+   */
+  useEffect(() => {
+    if (stacked) return undefined;
+    const section = sectionRef.current;
+    const track = trackRef.current;
+    const parts = [...track.querySelectorAll('.work-card')].map((card) => ({
+      card,
+      inner: card.querySelector('.work-inner'),
+      line: card.querySelector('.work-line'),
+      img: card.querySelector('.work-img'),
+      metas: card.querySelectorAll('.work-meta'),
+    }));
+    const total = projects.length;
+    const played = new Set();
+    let armed = false;
+    let lastActive = -1;
+    let tween;
+
+    const ctx = gsap.context(() => {
+      parts.forEach(({ line, metas }) => {
+        gsap.set(line, { scaleY: 0 });
+        gsap.set(metas, { autoAlpha: 0, y: 24 });
+      });
+
+      const update = () => {
+        const vw = window.innerWidth;
+        const x = gsap.getProperty(track, 'x');
+        const rise = Math.min(550, window.innerHeight * 0.65);
+        let active = 0;
+        let best = Infinity;
+        parts.forEach((p, i) => {
+          const r = (p.card.offsetLeft + p.card.offsetWidth / 2 + x) / vw; // card centre across the screen
+          const u = gsap.utils.clamp(0, 1, (1.2 - r) / 0.7);
+          gsap.set(p.inner, { y: rise * Math.pow(1 - u, 3) });
+          if (p.img) gsap.set(p.img, { xPercent: gsap.utils.clamp(-5, 5, (r - 0.5) * -9) });
+          if (armed && r < 1.05 && !played.has(i)) {
+            played.add(i);
+            gsap.to(p.metas, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.07, ease: 'power3.out' });
+            gsap.to(p.line, { scaleY: 1, duration: 1.2, ease: 'power2.out', delay: 0.1 });
+          }
+          const d = Math.abs(r - 0.5);
+          if (i < total && d < best) { best = d; active = i; }
+        });
+        const prog = tween ? tween.progress() : 0;
+        gsap.set(barRef.current, { scaleX: prog });
+        gsap.set(plusRef.current, { rotation: 360 * prog });
+        if (active !== lastActive && counterRef.current) {
+          lastActive = active;
+          counterRef.current.textContent = `${pad(active + 1)} / ${pad(total)}`;
+        }
+      };
+
+      tween = gsap.to(track, {
+        x: () => -(track.scrollWidth - window.innerWidth),
+        ease: 'none',
+        onUpdate: update,
+        scrollTrigger: {
+          trigger: section,
+          start: 'top top',
+          end: () => `+=${track.scrollWidth - window.innerWidth}`,
+          pin: true,
+          scrub: 0.8,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          refreshPriority: 1, // sits above the certificates pin, so measure it first
+          onRefresh: update,
+        },
+      });
+
+      // cards already on screen reveal as the section arrives, not on page load
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 55%',
+        onEnter: () => { armed = true; update(); },
+      });
+      update();
+    }, section);
+
+    ScrollTrigger.refresh();
+    return () => ctx.revert();
+  }, [stacked, projects]);
+
+  /* Mobile: a vertical stack whose cards reveal as they scroll in */
+  useEffect(() => {
+    if (!stacked || reduced) return undefined;
+    const ctx = gsap.context(() => {
+      sectionRef.current.querySelectorAll('.work-card').forEach((card) => {
+        const tl = gsap.timeline({ scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none reverse' } });
+        tl.fromTo(card.querySelector('.work-line-h'), { scaleX: 0 }, { scaleX: 1, duration: 1, ease: 'power2.out' }, 0);
+        const media = card.querySelector('.work-media');
+        if (media) tl.fromTo(media, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'expo.inOut' }, 0.05);
+        tl.fromTo(card.querySelectorAll('.work-meta'), { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.06, ease: 'power3.out' }, 0.4);
+      });
+    }, sectionRef);
+    return () => ctx.revert();
+  }, [stacked, reduced, projects]);
+
+  const panel = {
+    flexShrink: 0,
+    width: stacked ? '100%' : '50vw',
+    height: stacked ? 'auto' : '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+  };
+
   return (
-    <section id="projects" ref={ref} style={{
-      minHeight: '100vh',
-      padding: isMobile ? '5rem 1.5rem' : '8rem 2rem',
-      maxWidth: '1400px', margin: '0 auto', transition: 'color 0.5s ease',
-    }}>
-      <motion.div
-        initial={{ opacity: 0, x: -30 }} animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}
+    <section
+      id="projects"
+      ref={sectionRef}
+      style={{ position: 'relative', height: stacked ? 'auto' : '100vh', overflow: 'hidden' }}
+    >
+      <div
+        ref={trackRef}
+        style={{
+          display: 'flex', flexDirection: stacked ? 'column' : 'row',
+          width: stacked ? '100%' : 'max-content', height: stacked ? 'auto' : '100%',
+          padding: stacked ? '5rem 1.5rem 3rem' : 0, willChange: 'transform',
+        }}
       >
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>03</span>
-        <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-        <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>PROJECTS</span>
-      </motion.div>
+        {/* Intro panel */}
+        <div style={{ ...panel, padding: stacked ? '0 0 1.5rem' : '6rem 5vw 5rem 4vw' }}>
+          <SectionLabel number="03" label="PROJECTS" theme={theme} style={{ marginBottom: '2.5rem' }} />
+          <LineReveal
+            stagger={0.12}
+            style={{
+              fontSize: stacked ? 'clamp(3rem, 16vw, 4.6rem)' : 'clamp(3.5rem, 7.6vw, 8rem)',
+              fontWeight: 700, letterSpacing: '-0.05em', lineHeight: 0.92, color: theme.text,
+            }}
+          >
+            Selected<br />work<span className="hl">.</span>
+          </LineReveal>
+          <BlurReveal style={{ marginTop: '2rem', maxWidth: 400, color: theme.muted, lineHeight: 1.8, fontSize: '0.95rem' }}>
+            Things I&apos;ve designed, built and shipped — from smart-city dashboards to AI-powered recommendation engines.
+          </BlurReveal>
+          {!stacked && (
+            <div style={{ marginTop: '3rem', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.muted }}>
+              KEEP SCROLLING <span className="work-arrow" style={{ color: theme.accent }}>→</span>
+            </div>
+          )}
+        </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, letterSpacing: '-0.03em', color: theme.text }}
-        >
-          Selected Work
-        </motion.h2>
-        <motion.span
-          initial={{ opacity: 0 }} animate={inView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.4 }}
-          style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', color: theme.border }}
-        >
-          {projects.length} projects
-        </motion.span>
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
-        gap: '1.5rem',
-      }}>
         {projects.map((project, i) => (
-          <ProjectCard key={project._id} project={project} index={i} theme={theme} isMobile={isMobile} />
+          <WorkCard key={project._id} project={project} index={i} total={projects.length} theme={theme} stacked={stacked} />
         ))}
+
+        {/* End panel */}
+        <div className="work-card" style={{ ...panel, position: 'relative', alignItems: 'center', padding: stacked ? '3rem 0 1rem' : '6rem 4vw 5rem' }}>
+          <PanelLine stacked={stacked} theme={theme} />
+          <div className="work-inner" style={{ textAlign: 'center', maxWidth: 440 }}>
+            <h3 className="work-meta" style={{ fontSize: stacked ? '1.4rem' : 'clamp(1.5rem, 2.4vw, 2.3rem)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.2, color: theme.text }}>
+              More experiments, side projects and code live on GitHub.
+            </h3>
+            <a
+              href={GITHUB_PROFILE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="work-meta roll-link"
+              style={{ display: 'inline-block', marginTop: '2rem', padding: '0.95rem 2rem', border: `1px solid ${theme.accent}`, color: theme.accent, textDecoration: 'none', fontFamily: mono, fontSize: '0.72rem', letterSpacing: '0.15em' }}
+            >
+              <RollText text="VIEW ALL ON GITHUB ↗" />
+            </a>
+          </div>
+        </div>
       </div>
+
+      {/* Progress HUD */}
+      {!stacked && (
+        <div style={{
+          position: 'absolute', left: '2rem', right: '2rem', bottom: '1.75rem',
+          display: 'flex', alignItems: 'center', gap: '1.5rem', pointerEvents: 'none',
+          fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.15em', color: theme.muted,
+        }}>
+          <span ref={counterRef}>{pad(1)} / {pad(projects.length)}</span>
+          <div style={{ flex: 1, height: 1, background: theme.border, position: 'relative' }}>
+            <div ref={barRef} style={{ position: 'absolute', inset: 0, background: theme.accent, transformOrigin: '0% 50%', transform: 'scaleX(0)' }} />
+          </div>
+          <svg ref={plusRef} width="13" height="13" viewBox="0 0 13 13" style={{ overflow: 'visible' }}>
+            <line x1="6.5" y1="0" x2="6.5" y2="13" stroke={theme.textSub} />
+            <line x1="0" y1="6.5" x2="13" y2="6.5" stroke={theme.textSub} />
+          </svg>
+        </div>
+      )}
     </section>
   );
 };

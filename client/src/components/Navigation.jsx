@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import RollText from './reveal/RollText';
 
 const navItems = [
   { label: 'Home', href: '#hero' },
@@ -106,6 +107,7 @@ const Navigation = () => {
               <button
                 key={label}
                 onClick={() => scrollTo(href)}
+                className="roll-link"
                 style={{
                   background: 'none', border: 'none',
                   color: active === label ? theme.accent : theme.muted,
@@ -129,7 +131,7 @@ const Navigation = () => {
                     }}
                   />
                 )}
-                {label}
+                <RollText text={label} />
               </button>
             ))}
 

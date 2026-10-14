@@ -4,7 +4,15 @@ const CustomCursor = () => {
   const dotRef = useRef(null);
   const ringRef = useRef(null);
   const [hovering, setHovering] = useState(false);
+  const [mode, setMode] = useState(null);
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // 3D scenes drive contextual cursor states (hold / charging / drag / view)
+  useEffect(() => {
+    const onMode = (e) => setMode(e.detail);
+    window.addEventListener('cursor-mode', onMode);
+    return () => window.removeEventListener('cursor-mode', onMode);
+  }, []);
 
   useEffect(() => {
     if (isTouchDevice) return;
@@ -57,10 +65,14 @@ const CustomCursor = () => {
 
   if (isTouchDevice) return null;
 
+  const label = { hold: 'HOLD', charging: 'HOLD', blasted: 'RELEASE', drag: '‹ DRAG ›', view: 'VIEW ↗' }[mode];
+
   return (
     <>
-      <div ref={dotRef} className={`cursor-dot ${hovering ? 'hovering' : ''}`} />
-      <div ref={ringRef} className={`cursor-ring ${hovering ? 'hovering' : ''}`} />
+      <div ref={dotRef} className={`cursor-dot ${hovering ? 'hovering' : ''} ${mode ? 'has-mode' : ''}`} />
+      <div ref={ringRef} className={`cursor-ring ${hovering ? 'hovering' : ''} ${mode ? `mode mode-${mode}` : ''}`}>
+        <span className="cursor-label">{label}</span>
+      </div>
     </>
   );
 };

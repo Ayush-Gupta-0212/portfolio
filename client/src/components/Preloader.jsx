@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
 /* ─── tiny hook: animated counter ─── */
 const useCounter = (target, duration = 2600) => {
@@ -168,15 +168,19 @@ const GlitchName = ({ progress }) => {
 };
 
 /* ─── Main Preloader ─── */
+const BELTS = 10;
+const BELT_EASE = [0.76, 0, 0.24, 1];
+
 const Preloader = ({ onComplete }) => {
-  const [done, setDone] = useState(false);
   const { value: count, done: countDone } = useCounter(100, 2800);
 
+  // Hand over as soon as the count lands: the site mounts underneath and the
+  // parent AnimatePresence plays this component's exit (content blurs out,
+  // then the belts lift away in a wave to reveal the hero).
   useEffect(() => {
     if (countDone) {
-      const t1 = setTimeout(() => setDone(true), 500);
-      const t2 = setTimeout(() => onComplete?.(), 1300);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      const t = setTimeout(() => onComplete?.(), 450);
+      return () => clearTimeout(t);
     }
   }, [countDone, onComplete]);
 
@@ -191,202 +195,213 @@ const Preloader = ({ onComplete }) => {
   const msgIndex = Math.min(Math.floor((count / 100) * messages.length), messages.length - 1);
 
   return (
-    <AnimatePresence>
-      {!done && (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, overflow: 'hidden' }}>
+      {/* Belts form the backdrop and lift away one after another on exit */}
+      {Array.from({ length: BELTS }, (_, i) => (
         <motion.div
-          key="preloader"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+          key={i}
+          initial={{ y: 0, borderBottomColor: 'rgba(200,255,0,0)' }}
+          exit={{ y: '-101%', borderBottomColor: 'rgba(200,255,0,0.6)' }}
+          transition={{ duration: 0.95, ease: BELT_EASE, delay: 0.18 + i * 0.045 }}
           style={{
-            position: 'fixed', inset: 0,
+            position: 'absolute', top: 0, bottom: 0,
+            left: `${(i * 100) / BELTS}%`, width: `calc(${100 / BELTS}% + 1px)`,
             background: '#000',
-            zIndex: 9000,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
+            borderBottom: '1px solid',
           }}
-        >
-          <Scanlines />
+        />
+      ))}
 
-          {/* Corner brackets */}
-          {[
-            { top: '2rem', left: '2rem', borderTop: '1px solid', borderLeft: '1px solid' },
-            { top: '2rem', right: '2rem', borderTop: '1px solid', borderRight: '1px solid' },
-            { bottom: '2rem', left: '2rem', borderBottom: '1px solid', borderLeft: '1px solid' },
-            { bottom: '2rem', right: '2rem', borderBottom: '1px solid', borderRight: '1px solid' },
-          ].map((style, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 1.2 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              style={{
-                position: 'absolute',
-                width: '30px', height: '30px',
-                borderColor: 'rgba(200,255,0,0.4)',
-                ...style,
-              }}
-            />
-          ))}
+      <motion.div
+        initial={{ opacity: 1 }}
+        exit={{ opacity: 0, scale: 0.97, filter: 'blur(8px)' }}
+        transition={{ duration: 0.35, ease: BELT_EASE }}
+        style={{
+          position: 'absolute', inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <Scanlines />
 
-          {/* Top-left label */}
+        {/* Corner brackets */}
+        {[
+          { top: '2rem', left: '2rem', borderTop: '1px solid', borderLeft: '1px solid' },
+          { top: '2rem', right: '2rem', borderTop: '1px solid', borderRight: '1px solid' },
+          { bottom: '2rem', left: '2rem', borderBottom: '1px solid', borderLeft: '1px solid' },
+          { bottom: '2rem', right: '2rem', borderBottom: '1px solid', borderRight: '1px solid' },
+        ].map((style, i) => (
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            key={i}
+            initial={{ opacity: 0, scale: 1.2 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: i * 0.08 }}
             style={{
               position: 'absolute',
-              top: '2rem', left: '3rem',
+              width: '30px', height: '30px',
+              borderColor: 'rgba(200,255,0,0.4)',
+              ...style,
+            }}
+          />
+        ))}
+
+        {/* Top-left label */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{
+            position: 'absolute',
+            top: '2rem', left: '3rem',
+            fontFamily: "'Space Mono', monospace",
+            fontSize: '0.65rem',
+            color: '#333',
+            letterSpacing: '0.15em',
+          }}
+        >
+          AY.DEV — PORTFOLIO
+        </motion.div>
+
+        {/* Top-right: live clock */}
+        <LiveTime />
+
+        {/* Center: radar + name */}
+        <div style={{ position: 'relative', width: 220, height: 220, marginBottom: '3rem' }}>
+          <RadarCanvas />
+        </div>
+
+        {/* Glitch name */}
+        <GlitchName progress={count} />
+
+        {/* Title tag */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          style={{
+            fontFamily: "'Space Mono', monospace",
+            fontSize: '0.65rem',
+            color: '#c8ff00',
+            letterSpacing: '0.3em',
+            marginTop: '0.5rem',
+            marginBottom: '3rem',
+            zIndex: 2,
+          }}
+        >
+          FULL STACK DEVELOPER
+        </motion.div>
+
+        {/* Progress bar */}
+        <div
+          style={{
+            position: 'relative',
+            width: 'min(420px, 80vw)',
+            height: '1px',
+            background: '#111',
+            zIndex: 2,
+          }}
+        >
+          <motion.div
+            style={{
+              position: 'absolute',
+              left: 0, top: 0,
+              height: '100%',
+              width: `${count}%`,
+              background: 'linear-gradient(90deg, #c8ff00, #00ff88)',
+              boxShadow: '0 0 8px rgba(200,255,0,0.6)',
+              transition: 'width 0.04s linear',
+            }}
+          />
+          {/* Glowing head */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-3px',
+              left: `${count}%`,
+              width: 6, height: 6,
+              borderRadius: '50%',
+              background: '#c8ff00',
+              boxShadow: '0 0 12px 4px rgba(200,255,0,0.8)',
+              transform: 'translateX(-50%)',
+              transition: 'left 0.04s linear',
+            }}
+          />
+        </div>
+
+        {/* Counter + status row */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: 'min(420px, 80vw)',
+            marginTop: '0.75rem',
+            zIndex: 2,
+          }}
+        >
+          <motion.span
+            key={messages[msgIndex]}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
               fontFamily: "'Space Mono', monospace",
-              fontSize: '0.65rem',
-              color: '#333',
+              fontSize: '0.6rem',
+              color: '#444',
               letterSpacing: '0.15em',
             }}
           >
-            AY.DEV — PORTFOLIO
-          </motion.div>
+            {messages[msgIndex]}
+          </motion.span>
 
-          {/* Top-right: live clock */}
-          <LiveTime />
-
-          {/* Center: radar + name */}
-          <div style={{ position: 'relative', width: 220, height: 220, marginBottom: '3rem' }}>
-            <RadarCanvas />
-          </div>
-
-          {/* Glitch name */}
-          <GlitchName progress={count} />
-
-          {/* Title tag */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+          <span
             style={{
               fontFamily: "'Space Mono', monospace",
-              fontSize: '0.65rem',
+              fontSize: '0.85rem',
               color: '#c8ff00',
-              letterSpacing: '0.3em',
-              marginTop: '0.5rem',
-              marginBottom: '3rem',
-              zIndex: 2,
+              letterSpacing: '0.1em',
+              fontWeight: 700,
             }}
           >
-            FULL STACK DEVELOPER
-          </motion.div>
+            {String(count).padStart(3, '0')}
+            <span style={{ color: '#333', fontSize: '0.6rem' }}>%</span>
+          </span>
+        </div>
 
-          {/* Progress bar */}
-          <div
-            style={{
-              position: 'relative',
-              width: 'min(420px, 80vw)',
-              height: '1px',
-              background: '#111',
-              zIndex: 2,
-            }}
-          >
-            <motion.div
-              style={{
-                position: 'absolute',
-                left: 0, top: 0,
-                height: '100%',
-                width: `${count}%`,
-                background: 'linear-gradient(90deg, #c8ff00, #00ff88)',
-                boxShadow: '0 0 8px rgba(200,255,0,0.6)',
-                transition: 'width 0.04s linear',
-              }}
-            />
-            {/* Glowing head */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '-3px',
-                left: `${count}%`,
-                width: 6, height: 6,
-                borderRadius: '50%',
-                background: '#c8ff00',
-                boxShadow: '0 0 12px 4px rgba(200,255,0,0.8)',
-                transform: 'translateX(-50%)',
-                transition: 'left 0.04s linear',
-              }}
-            />
-          </div>
-
-          {/* Counter + status row */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: 'min(420px, 80vw)',
-              marginTop: '0.75rem',
-              zIndex: 2,
-            }}
-          >
+        {/* Bottom: decorative data readouts */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '2rem',
+            left: '3rem',
+            right: '3rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            zIndex: 2,
+          }}
+        >
+          {['REACT v18', 'THREE.JS', 'NODE.JS', 'MONGODB'].map((item, i) => (
             <motion.span
-              key={messages[msgIndex]}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              key={item}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: count > i * 25 ? 0.35 : 0, y: 0 }}
+              transition={{ duration: 0.4 }}
               style={{
                 fontFamily: "'Space Mono', monospace",
-                fontSize: '0.6rem',
-                color: '#444',
-                letterSpacing: '0.15em',
-              }}
-            >
-              {messages[msgIndex]}
-            </motion.span>
-
-            <span
-              style={{
-                fontFamily: "'Space Mono', monospace",
-                fontSize: '0.85rem',
+                fontSize: '0.55rem',
                 color: '#c8ff00',
                 letterSpacing: '0.1em',
-                fontWeight: 700,
               }}
             >
-              {String(count).padStart(3, '0')}
-              <span style={{ color: '#333', fontSize: '0.6rem' }}>%</span>
-            </span>
-          </div>
-
-          {/* Bottom: decorative data readouts */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '2rem',
-              left: '3rem',
-              right: '3rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              zIndex: 2,
-            }}
-          >
-            {['REACT v18', 'THREE.JS', 'NODE.JS', 'MONGODB'].map((item, i) => (
-              <motion.span
-                key={item}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: count > i * 25 ? 0.35 : 0, y: 0 }}
-                transition={{ duration: 0.4 }}
-                style={{
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: '0.55rem',
-                  color: '#c8ff00',
-                  letterSpacing: '0.1em',
-                }}
-              >
-                {item}
-              </motion.span>
-            ))}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+              {item}
+            </motion.span>
+          ))}
+        </div>
+      </motion.div>
+    </div>
   );
 };
 

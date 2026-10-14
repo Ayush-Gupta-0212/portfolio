@@ -3,6 +3,9 @@ import { motion, useInView } from 'framer-motion';
 import { getSkills } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import SectionLabel from '../components/reveal/SectionLabel';
+import LineReveal from '../components/reveal/LineReveal';
+import BlurReveal from '../components/reveal/BlurReveal';
 
 const FALLBACK_SKILLS = {
   Languages: [
@@ -78,15 +81,7 @@ const Skills = () => {
       maxWidth: '1400px', margin: '0 auto', transition: 'color 0.5s ease',
     }}>
       {/* Section header */}
-      <motion.div
-        initial={{ opacity: 0, x: -30 }} animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '4rem' }}
-      >
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>02</span>
-        <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-        <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>SKILLS</span>
-      </motion.div>
+      <SectionLabel number="02" label="SKILLS" theme={theme} style={{ marginBottom: '4rem' }} />
 
       <div style={{
         display: 'grid',
@@ -96,23 +91,17 @@ const Skills = () => {
       }}>
         {/* Left */}
         <div>
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          <LineReveal
             style={{
               fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700,
-              letterSpacing: '-0.03em', color: theme.text, marginBottom: '1rem',
+              letterSpacing: '-0.03em', lineHeight: 1.05, color: theme.text, marginBottom: '1rem',
             }}
           >
             What I work with
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.15 }}
-            style={{ color: theme.muted, marginBottom: '3rem', lineHeight: 1.8 }}
-          >
+          </LineReveal>
+          <BlurReveal style={{ color: theme.muted, marginBottom: '3rem', lineHeight: 1.8 }}>
             A curated set of technologies I use to build fast, scalable, and beautiful things.
-          </motion.p>
+          </BlurReveal>
 
           {/* Category tabs */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '3rem' }}>

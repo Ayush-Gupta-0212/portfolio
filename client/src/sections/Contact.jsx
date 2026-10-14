@@ -2,6 +2,17 @@ import { useRef, useState } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import SectionLabel from '../components/reveal/SectionLabel';
+import LineReveal from '../components/reveal/LineReveal';
+import BlurReveal from '../components/reveal/BlurReveal';
+import RollText from '../components/reveal/RollText';
+import Wordmark from '../components/reveal/Wordmark';
+
+const socials = [
+  { label: 'GitHub', href: 'https://github.com/Ayush-Gupta-0212' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/ayush-gupta-5a646b289' },
+  { label: 'Resume', href: 'https://drive.google.com/file/d/1t2lAIj8f-tA10wilV_R4o7EIoYW6DqoL/view?usp=sharing' },
+];
 
 const Contact = () => {
   const ref = useRef(null);
@@ -73,15 +84,7 @@ const Contact = () => {
       maxWidth: '1400px', margin: '0 auto', transition: 'color 0.5s ease',
     }}>
       {/* Section header */}
-      <motion.div
-        initial={{ opacity: 0, x: -30 }} animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '4rem' }}
-      >
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>05</span>
-        <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-        <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>CONTACT</span>
-      </motion.div>
+      <SectionLabel number="05" label="CONTACT" theme={theme} style={{ marginBottom: '4rem' }} />
 
       <div style={{
         display: 'grid',
@@ -91,27 +94,21 @@ const Contact = () => {
       }}>
         {/* Left */}
         <div>
-          <motion.h2
-            initial={{ opacity: 0, y: 40 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          <LineReveal
+            stagger={0.12}
             style={{
               fontSize: isMobile ? 'clamp(2rem, 12vw, 3.5rem)' : 'clamp(2.5rem, 6vw, 5rem)',
-              fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.95, color: theme.text,
+              fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, color: theme.text,
               marginBottom: '2rem',
             }}
           >
-            Let's build<br />something<br />
-            <span style={{ color: theme.accent }}>great.</span>
-          </motion.h2>
+            Let&apos;s build<br />something<br />
+            <span className="hl">great.</span>
+          </LineReveal>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            style={{ color: theme.muted, lineHeight: 1.9, marginBottom: '2.5rem', fontSize: '0.95rem' }}
-          >
-            Whether you have a project in mind, a role to fill, or just want to talk shop —
-            my inbox is always open.
-          </motion.p>
+          <BlurReveal style={{ color: theme.muted, lineHeight: 1.9, marginBottom: '2.5rem', fontSize: '0.95rem' }}>
+            Whether you have a project in mind, a role to fill, or just want to talk shop — my inbox is always open.
+          </BlurReveal>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -184,7 +181,7 @@ const Contact = () => {
                 ✓ Message sent! Talk soon.
               </motion.div>
             ) : (
-              <motion.button key="btn" type="submit"
+              <motion.button key="btn" type="submit" className="roll-link"
                 disabled={status === 'loading'}
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                 style={{
@@ -197,7 +194,7 @@ const Contact = () => {
                   textTransform: 'uppercase',
                 }}
               >
-                {status === 'loading' ? 'SENDING...' : 'SEND MESSAGE →'}
+                <RollText text={status === 'loading' ? 'SENDING...' : 'SEND MESSAGE →'} />
               </motion.button>
             )}
           </AnimatePresence>
@@ -223,13 +220,11 @@ const Contact = () => {
           © 2026 Ayush Gupta
         </span>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
-          {['GitHub', 'LinkedIn', 'Twitter'].map(s => (
-            <a key={s} href="#"
-              style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, textDecoration: 'none', transition: 'color 0.3s' }}
-              onMouseEnter={e => e.target.style.color = theme.accent}
-              onMouseLeave={e => e.target.style.color = theme.muted}
+          {socials.map(({ label, href }) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="roll-link footer-link"
+              style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, textDecoration: 'none' }}
             >
-              {s}
+              <RollText text={label} />
             </a>
           ))}
         </div>
@@ -237,6 +232,9 @@ const Contact = () => {
           Designed & Built with ❤️
         </span>
       </motion.div>
+
+      {/* Signature wordmark */}
+      <Wordmark theme={theme} isMobile={isMobile} />
     </section>
   );
 };

@@ -1,7 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { gsap, ScrollTrigger, prefersReducedMotion } from '../lib/gsap';
+import { CertSpiral, PHASE } from '../three/certSpiral/CertSpiral';
+import RollText from '../components/reveal/RollText';
 
 const CERTIFICATES = [
   {
@@ -46,254 +48,201 @@ const CERTIFICATES = [
   },
 ];
 
-const CARD_WIDTH = 300;
-const CARD_GAP = 24;
+const mono = "'Space Mono', monospace";
 
-/* ── Card ── */
-const CertCard = ({ cert, theme, pausedRef }) => {
-  const [hovered, setHovered] = useState(false);
+const openCert = (i) => window.open(CERTIFICATES[i].link, '_blank', 'noopener,noreferrer');
 
-  return (
-    <a
-      href={cert.link}
-      target="_blank"
-      rel="noopener noreferrer"
-      onMouseEnter={() => { setHovered(true); pausedRef.current = true; }}
-      onMouseLeave={() => { setHovered(false); pausedRef.current = false; }}
-      style={{
-        display: 'block', textDecoration: 'none',
-        width: `${CARD_WIDTH}px`, flexShrink: 0,
-        border: `1px solid ${hovered ? theme.accent : theme.border}`,
-        background: theme.bgAlt,
-        position: 'relative', overflow: 'hidden',
-        transition: 'border-color 0.3s ease, transform 0.35s ease',
-        transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
-        cursor: 'none',
-      }}
-    >
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '2px', zIndex: 2,
-        background: `linear-gradient(90deg, ${theme.accent}, #00ff88)`,
-        opacity: hovered ? 1 : 0, transition: 'opacity 0.3s ease',
-      }} />
-
-      <div style={{ width: '100%', overflow: 'hidden', lineHeight: 0, position: 'relative' }}>
-        <img
-          src={cert.image} alt={cert.title}
-          style={{
-            width: '100%', height: 'auto', display: 'block',
-            transform: hovered ? 'scale(1.04)' : 'scale(1)',
-            transition: 'transform 0.5s ease',
-          }}
-        />
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%',
-          background: `linear-gradient(to top, ${theme.bgAlt}, transparent)`,
-          pointerEvents: 'none',
-        }} />
+const CertCard = ({ cert, theme, isMobile, mediaRef }) => (
+  <a className="cert-card" href={cert.link} target="_blank" rel="noopener noreferrer" style={{ '--card-border': theme.border }}>
+    <div ref={mediaRef} className="cert-media">
+      <img src={cert.image} alt={cert.title} draggable="false" />
+    </div>
+    <div className="cert-text">
+      <span style={{ display: 'block', fontFamily: mono, fontSize: isMobile ? '0.48rem' : '0.56rem', letterSpacing: '0.14em', color: theme.accent, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+        {cert.issuer}
+      </span>
+      <h3 className="cert-title" style={{ fontSize: isMobile ? '0.72rem' : '0.86rem', color: theme.text }}>{cert.title}</h3>
+      <div className="cert-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontFamily: mono, fontSize: isMobile ? '0.5rem' : '0.56rem', letterSpacing: '0.1em' }}>
+        <span style={{ color: theme.muted }}>{cert.date}</span>
+        <span style={{ color: theme.accent }}><RollText text="VERIFY ↗" /></span>
       </div>
+    </div>
+  </a>
+);
 
-      <div style={{ padding: '1.1rem 1.25rem', borderTop: `1px solid ${theme.border}` }}>
-        <span style={{
-          fontFamily: "'Space Mono', monospace", fontSize: '0.55rem',
-          color: theme.accent, letterSpacing: '0.15em',
-          display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase',
-        }}>{cert.issuer}</span>
-        <h3 style={{
-          fontSize: '0.88rem', fontWeight: 700, color: theme.text,
-          letterSpacing: '-0.01em', lineHeight: 1.35, marginBottom: '0.75rem',
-        }}>{cert.title}</h3>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: theme.muted, letterSpacing: '0.1em' }}>
-            {cert.date}
-          </span>
-          <span style={{
-            fontFamily: "'Space Mono', monospace", fontSize: '0.58rem',
-            color: theme.accent, letterSpacing: '0.08em',
-            opacity: hovered ? 1 : 0.35, transition: 'opacity 0.3s ease',
-          }}>VERIFY ↗</span>
-        </div>
-      </div>
-    </a>
-  );
-};
-
-/* ── Arrow Button ── */
-const ArrowBtn = ({ dir, theme, onClick }) => {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <motion.button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      whileTap={{ scale: 0.88 }}
-      style={{
-        width: '42px', height: '42px', borderRadius: '50%',
-        border: `1px solid ${hovered ? theme.accent : theme.border}`,
-        background: hovered ? theme.accent : 'transparent',
-        color: hovered ? theme.accentText : theme.muted,
-        fontSize: '1.1rem', cursor: 'none',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.25s ease',
-        outline: 'none', flexShrink: 0,
-      }}
-    >
-      {dir === -1 ? '←' : '→'}
-    </motion.button>
-  );
-};
-
-/* ── Main Section ── */
 const Certificates = () => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-100px' });
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  const trackRef = useRef(null);
-  const posRef = useRef(0);
-  const targetRef = useRef(0);
-  const pausedRef = useRef(false);
-  const touchStartRef = useRef(null);
-  const rafRef = useRef(null);
+  const sectionRef = useRef(null);
+  const stageRef = useRef(null);
+  const canvasRef = useRef(null);
+  const topWordRef = useRef(null);
+  const bottomWordRef = useRef(null);
+  const hintRef = useRef(null);
+  const headRef = useRef(null);
+  const lineRefs = useRef([]);
+  const mediaRefs = useRef([]);
+  const textRefs = useRef([]);
+  const spiralRef = useRef(null);
+  const reduced = prefersReducedMotion();
 
-  const totalWidth = CERTIFICATES.length * (CARD_WIDTH + CARD_GAP);
-  const doubled = [...CERTIFICATES, ...CERTIFICATES];
+  // declared before the scene effect so a freshly created scene gets the current theme
+  const paletteRef = useRef(null);
+  useEffect(() => {
+    paletteRef.current = { bg: theme.bg, rail: mode === 'dark' ? '#3d3d3d' : '#dcc6b0' };
+    spiralRef.current?.setPalette(paletteRef.current);
+  }, [theme.bg, mode]);
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    if (reduced) return undefined;
+    const stage = stageRef.current;
+    const topWord = topWordRef.current;
+    const bottomWord = bottomWordRef.current;
+    let tl;
 
-    const tick = () => {
-      // Auto advance target when not paused
-      if (!pausedRef.current) targetRef.current += 0.5;
+    const ctx = gsap.context(() => {
+      tl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: stage,
+          start: 'top top',
+          end: () => `+=${window.innerHeight * (isMobile ? 3.2 : 4.6)}`,
+          pin: true,
+          scrub: 0.6,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => { stage.dataset.live = self.progress >= PHASE.swapEnd ? '1' : '0'; },
+        },
+      });
 
-      // Wrap target
-      if (targetRef.current >= totalWidth) targetRef.current -= totalWidth;
-      if (targetRef.current < 0) targetRef.current += totalWidth;
+      // giant words cross the screen in opposite directions while the spiral turns
+      // (top word sits at the left edge, bottom word at the right edge)
+      tl.fromTo(topWord, { x: () => -topWord.offsetWidth }, { x: () => window.innerWidth, duration: PHASE.spiralEnd }, 0)
+        .fromTo(bottomWord, { x: () => bottomWord.offsetWidth }, { x: () => -window.innerWidth, duration: PHASE.spiralEnd }, 0)
+        .to([topWord, bottomWord], { autoAlpha: 0, duration: 0.04 }, PHASE.spiralEnd - 0.04)
+        .to(hintRef.current, { autoAlpha: 0, duration: 0.05 }, 0.05)
+        // grid phase: heading, rules, card copy, then the real images take over from WebGL
+        .fromTo(headRef.current.children, { autoAlpha: 0, yPercent: 50, filter: 'blur(12px)' },
+          { autoAlpha: 1, yPercent: 0, filter: 'blur(0px)', duration: 0.1, stagger: 0.02 }, PHASE.gridStart + 0.06)
+        .fromTo(lineRefs.current, { scaleX: 0 }, { scaleX: 1, duration: 0.22, stagger: 0.04 }, PHASE.gridStart + 0.1)
+        .fromTo(textRefs.current, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.08, stagger: 0.015 }, PHASE.gridEnd - 0.08)
+        .fromTo(mediaRefs.current, { opacity: 0 }, { opacity: 1, duration: PHASE.swapEnd - PHASE.swapStart }, PHASE.swapStart)
+        .set({}, {}, 1); // timeline spans exactly 0 → 1
+    }, stage);
 
-      // Lerp pos → target with wrap-around awareness
-      let diff = targetRef.current - posRef.current;
-      if (diff > totalWidth / 2) diff -= totalWidth;
-      if (diff < -totalWidth / 2) diff += totalWidth;
-      posRef.current += diff * 0.07;
-      if (posRef.current >= totalWidth) posRef.current -= totalWidth;
-      if (posRef.current < 0) posRef.current += totalWidth;
+    let spiral = null;
+    try {
+      spiral = new CertSpiral({
+        canvas: canvasRef.current,
+        stage,
+        certs: CERTIFICATES,
+        palette: paletteRef.current,
+        isMobile,
+        getProgress: () => tl.progress(),
+        getTargets: () => mediaRefs.current.map((el) => el?.getBoundingClientRect()),
+        onOpen: openCert,
+      });
+    } catch (err) {
+      console.warn('Certificate spiral disabled:', err);
+    }
+    spiralRef.current = spiral;
 
-      track.style.transform = `translateX(-${posRef.current}px)`;
-      rafRef.current = requestAnimationFrame(tick);
+    // only render while the section (incl. its pin spacing) is near the viewport
+    const io = new IntersectionObserver(([e]) => spiral?.setInView(e.isIntersecting), { rootMargin: '200px 0px' });
+    io.observe(sectionRef.current);
+
+    // late-loading images above (projects) shift the pin start; keep triggers fresh
+    let t;
+    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => ScrollTrigger.refresh(), 200); });
+    ro.observe(document.body);
+
+    return () => {
+      clearTimeout(t);
+      ro.disconnect();
+      io.disconnect();
+      spiral?.dispose();
+      spiralRef.current = null;
+      ctx.revert();
     };
+  }, [isMobile, reduced]);
 
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [totalWidth]);
-
-  const scrollBy = (dir) => {
-    targetRef.current += dir * (CARD_WIDTH + CARD_GAP);
-    if (targetRef.current >= totalWidth) targetRef.current -= totalWidth;
-    if (targetRef.current < 0) targetRef.current += totalWidth;
-  };
-
-  const handleTouchStart = (e) => {
-    pausedRef.current = true;
-    touchStartRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e) => {
-    if (touchStartRef.current === null) return;
-    const delta = touchStartRef.current - e.touches[0].clientX;
-    targetRef.current += delta;
-    posRef.current += delta;
-    if (targetRef.current < 0) targetRef.current += totalWidth;
-    if (targetRef.current >= totalWidth) targetRef.current -= totalWidth;
-    if (posRef.current < 0) posRef.current += totalWidth;
-    if (posRef.current >= totalWidth) posRef.current -= totalWidth;
-    touchStartRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    touchStartRef.current = null;
-    pausedRef.current = false;
+  const wordStyle = {
+    fontFamily: "'Space Grotesk', sans-serif",
+    fontWeight: 700,
+    fontSize: isMobile ? 'clamp(4rem, 22vw, 7rem)' : 'clamp(6rem, 15vw, 15rem)',
+    letterSpacing: '-0.05em',
+    lineHeight: 0.85,
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    willChange: 'transform',
   };
 
   return (
-    <section id="certificates" ref={ref} style={{
-      padding: isMobile ? '5rem 0' : '8rem 0',
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{ padding: isMobile ? '0 1.5rem' : '0 2rem', maxWidth: '1400px', margin: '0 auto' }}>
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}
-        >
-          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, letterSpacing: '0.15em' }}>04</span>
-          <span style={{ width: '3rem', height: '1px', background: theme.border }} />
-          <span style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.15em' }}>CERTIFICATES</span>
-        </motion.div>
+    <section id="certificates" ref={sectionRef} style={{ position: 'relative', minHeight: 0 }}>
+      <div ref={stageRef} className="cert-stage" data-live={reduced ? '1' : undefined} style={{ position: 'relative', height: reduced ? 'auto' : '100vh', minHeight: '100vh', overflow: 'hidden' }}>
+        {!reduced && (
+          <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
+        )}
 
-        {/* Title row + arrows */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, letterSpacing: '-0.03em', color: theme.text }}
-          >
-            Credentials
-          </motion.h2>
-
-          {/* Arrows — desktop only, right of title */}
-          {!isMobile && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : {}}
-              transition={{ delay: 0.4 }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-            >
-              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.border, marginRight: '0.5rem' }}>
-                {CERTIFICATES.length} certs
-              </span>
-              <ArrowBtn dir={-1} theme={theme} onClick={() => scrollBy(-1)} />
-              <ArrowBtn dir={1} theme={theme} onClick={() => scrollBy(1)} />
-            </motion.div>
-          )}
+        {/* top bar */}
+        <div style={{
+          position: 'absolute', top: isMobile ? '4.6rem' : '5.5rem', left: isMobile ? '1.5rem' : '2rem', right: isMobile ? '1.5rem' : '2rem',
+          zIndex: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none',
+          fontFamily: mono, fontSize: '0.68rem', letterSpacing: '0.15em', color: theme.muted,
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            04 <span style={{ width: '3rem', height: 1, background: theme.border }} /> CERTIFICATES
+          </span>
+          <span>{String(CERTIFICATES.length).padStart(2, '0')} VERIFIED</span>
         </div>
-      </div>
 
-      {/* Carousel track */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={inView ? { opacity: 1 } : {}}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        style={{ position: 'relative' }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Edge fades */}
-        <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0, width: '80px', zIndex: 2, pointerEvents: 'none',
-          background: `linear-gradient(to right, ${theme.bg}, transparent)`,
-        }} />
-        <div style={{
-          position: 'absolute', right: 0, top: 0, bottom: 0, width: '80px', zIndex: 2, pointerEvents: 'none',
-          background: `linear-gradient(to left, ${theme.bg}, transparent)`,
-        }} />
+        {/* sweeping words — no z-index, so their blend mode reaches the canvas */}
+        {!reduced && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isMobile ? '1.2rem' : '1.6rem', pointerEvents: 'none' }}>
+            <div ref={topWordRef} style={{ ...wordStyle, alignSelf: 'flex-start', color: mode === 'dark' ? '#f2f2f2' : theme.text, mixBlendMode: mode === 'dark' ? 'difference' : 'normal' }}>
+              Always
+            </div>
+            <div ref={bottomWordRef} style={{ ...wordStyle, alignSelf: 'flex-end', color: 'transparent', WebkitTextStroke: `2px ${theme.accent}` }}>
+              Learning.
+            </div>
+          </div>
+        )}
 
-        <div style={{ overflow: 'hidden', padding: '0.5rem 0 1.5rem' }}>
-          <div
-            ref={trackRef}
-            style={{ display: 'flex', gap: `${CARD_GAP}px`, width: 'max-content', willChange: 'transform' }}
-          >
-            {doubled.map((cert, i) => (
-              <CertCard key={`${cert.id}-${i}`} cert={cert} theme={theme} pausedRef={pausedRef} />
+        {/* final grid — the WebGL cards land exactly on these images */}
+        <div className="cert-grid-wrap" style={{
+          position: reduced ? 'relative' : 'absolute', inset: 0, zIndex: 3,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: isMobile ? '7rem 1.5rem 2rem' : '7rem 2rem 3rem', maxWidth: '1400px', margin: '0 auto',
+        }}>
+          <div ref={headRef} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1rem', marginBottom: isMobile ? '1rem' : '1.6rem' }}>
+            <h2 style={{ fontSize: isMobile ? '2rem' : 'clamp(2.4rem, 4.6vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, color: theme.text }}>
+              Credentials<span style={{ color: theme.accent }}>.</span>
+            </h2>
+            <span style={{ fontFamily: mono, fontSize: isMobile ? '0.55rem' : '0.62rem', letterSpacing: '0.14em', color: theme.muted, textAlign: 'right' }}>
+              CLICK ANY CARD TO VERIFY ↗
+            </span>
+          </div>
+          <div ref={(el) => { lineRefs.current[0] = el; }} className="cert-rule" style={{ background: theme.border }} />
+          <div className="cert-grid" style={{ gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : `repeat(${CERTIFICATES.length}, minmax(0, 1fr))`, gap: isMobile ? '0.9rem 0.75rem' : '1.25rem', padding: isMobile ? '1rem 0' : '1.6rem 0' }}>
+            {CERTIFICATES.map((cert, i) => (
+              <div key={cert.id} ref={(el) => { textRefs.current[i] = el?.querySelector('.cert-text'); }} className="cert-cell">
+                <CertCard cert={cert} theme={theme} isMobile={isMobile} mediaRef={(el) => { mediaRefs.current[i] = el; }} />
+              </div>
             ))}
           </div>
+          <div ref={(el) => { lineRefs.current[1] = el; }} className="cert-rule" style={{ background: theme.border }} />
         </div>
-      </motion.div>
+
+        {!reduced && (
+          <div ref={hintRef} style={{
+            position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', zIndex: 4, pointerEvents: 'none',
+            fontFamily: mono, fontSize: '0.56rem', letterSpacing: '0.2em', color: theme.muted, whiteSpace: 'nowrap',
+          }}>
+            SCROLL TO SPIN ↓
+          </div>
+        )}
+      </div>
     </section>
   );
 };

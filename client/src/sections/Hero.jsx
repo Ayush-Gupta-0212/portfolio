@@ -3,6 +3,8 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import HeroMonogram from '../components/HeroMonogram';
+import RollText from '../components/reveal/RollText';
 
 /* ── Scramble hook ── */
 const useScramble = (text, trigger) => {
@@ -90,7 +92,12 @@ const ParticlesCanvas = ({ particleColor, particleSize = 0.015, particleOpacity 
     const resize = () => { camera.aspect = canvas.clientWidth / canvas.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(canvas.clientWidth, canvas.clientHeight); };
     window.addEventListener('resize', resize);
     let animId;
+    let onScreen = true;
+    let running = false;
     const animate = () => {
+      // pause while scrolled away or in a background tab
+      if (!onScreen || document.hidden) { running = false; return; }
+      running = true;
       const pos = geometry.attributes.position.array;
       for (let i = 0; i < count; i++) { pos[i * 3 + 1] -= speeds[i]; if (pos[i * 3 + 1] < -9) pos[i * 3 + 1] = 9; }
       geometry.attributes.position.needsUpdate = true;
@@ -101,17 +108,54 @@ const ParticlesCanvas = ({ particleColor, particleSize = 0.015, particleOpacity 
       renderer.render(scene, camera);
       animId = requestAnimationFrame(animate);
     };
+    const resume = () => { if (!running && onScreen && !document.hidden) animate(); };
+    const io = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; resume(); });
+    io.observe(canvas);
+    document.addEventListener('visibilitychange', resume);
     animate();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('mousemove', onMouse); window.removeEventListener('resize', resize); renderer.dispose(); geometry.dispose(); material.dispose(); };
+    return () => { cancelAnimationFrame(animId); io.disconnect(); document.removeEventListener('visibilitychange', resume); window.removeEventListener('mousemove', onMouse); window.removeEventListener('resize', resize); renderer.dispose(); geometry.dispose(); material.dispose(); };
   }, [particleColor, particleSize, particleOpacity, particleCount]);
   return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />;
 };
 
 /* ── Main Hero ── */
 const Hero = () => {
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const sectionRef = useRef(null);
+  const nameRef = useRef(null);
+  const pillRef = useRef(null);
+  const ctaRef = useRef(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  /* Where the monogram sits: centred in the empty space right of the name */
+  const getDesktopAnchor = useCallback((w) => {
+    const section = sectionRef.current;
+    const name = nameRef.current;
+    if (!section || !name) return null;
+    const s = section.getBoundingClientRect();
+    const n = name.getBoundingClientRect();
+    const left = (pillRef.current?.getBoundingClientRect().right ?? n.right) - s.left;
+    const right = w - 64;
+    const avail = right - left;
+    const cy = n.top - s.top + n.height / 2;
+    if (avail < 260) return { x: w * 0.8, y: cy - n.height * 0.35, width: Math.max(200, w * 0.28) };
+    return { x: left + avail * 0.5, y: cy - 10, width: Math.min(avail * 0.92, 680) };
+  }, []);
+
+  /* Mobile: in the open space under the CTAs, or beside the name on short screens */
+  const getMobileAnchor = useCallback((w, h) => {
+    const section = sectionRef.current;
+    const name = nameRef.current;
+    if (!section || !name) return null;
+    const s = section.getBoundingClientRect();
+    const ctaBottom = (ctaRef.current?.getBoundingClientRect().bottom ?? s.bottom) - s.top;
+    const free = h - 60 - ctaBottom; // leave room for the hint underneath
+    if (free >= 110) {
+      return { x: w / 2, y: ctaBottom + free / 2 + 12, width: Math.min(w * 0.68, free * 1.8) };
+    }
+    const n = name.getBoundingClientRect();
+    return { x: w * 0.82, y: n.top - s.top + n.height * 0.3, width: w * 0.3 };
+  }, []);
 
   const [mountScramble, setMountScramble] = useState(false);
   useEffect(() => {
@@ -167,7 +211,7 @@ const Hero = () => {
       <section
         id="hero"
         ref={sectionRef}
-        style={{ position: 'relative', minHeight: '100svh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        style={{ position: 'relative', minHeight: '100svh', overflow: 'hidden', display: 'flex', flexDirection: 'column', touchAction: 'pan-y', WebkitTouchCallout: 'none' }}
       >
         <ParticlesCanvas
           particleColor={theme.particleColor}
@@ -175,6 +219,7 @@ const Hero = () => {
           particleOpacity={0.5}
           particleCount={1000}
         />
+        <HeroMonogram sectionRef={sectionRef} getAnchor={getMobileAnchor} mode={mode} theme={theme} isMobile />
 
         {/* Ticker */}
         <div style={{
@@ -213,7 +258,7 @@ const Hero = () => {
           </motion.div>
 
           {/* Name block */}
-          <div style={{ lineHeight: 0.88 }}>
+          <div ref={nameRef} data-quake style={{ lineHeight: 0.88, alignSelf: 'flex-start' }}>
             <motion.div
               initial={{ opacity: 0, x: -60 }}
               animate={{ opacity: 1, x: 0 }}
@@ -323,6 +368,7 @@ const Hero = () => {
 
           {/* CTA buttons */}
           <motion.div
+            ref={ctaRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.35, duration: 0.7 }}
@@ -358,25 +404,6 @@ const Hero = () => {
             </motion.button>
           </motion.div>
         </div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          style={{
-            position: 'absolute', bottom: '1.5rem', left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
-            zIndex: 3,
-          }}
-        >
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ width: 1, height: '1.8rem', background: `linear-gradient(to bottom, ${theme.accent}, transparent)` }}
-          />
-          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.5rem', color: theme.muted, letterSpacing: '0.2em' }}>SCROLL</span>
-        </motion.div>
       </section>
     );
   }
@@ -387,9 +414,10 @@ const Hero = () => {
       id="hero"
       ref={sectionRef}
       onMouseMove={handleMouseMove}
-      style={{ position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+      style={{ position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', touchAction: 'pan-y' }}
     >
       <ParticlesCanvas particleColor={theme.particleColor} particleSize={theme.particleSize} particleOpacity={theme.particleOpacity} particleCount={theme.particleCount} />
+      <HeroMonogram sectionRef={sectionRef} getAnchor={getDesktopAnchor} mode={mode} theme={theme} />
 
       {/* Mouse spotlight */}
       <motion.div
@@ -421,14 +449,14 @@ const Hero = () => {
       <div style={{ position: 'relative', zIndex: 3, padding: '4rem 4rem 0', display: 'flex', flexDirection: 'column' }}>
 
         {/* BIG NAME ROW */}
-        <div style={{ position: 'relative' }}>
+        <div ref={nameRef} style={{ position: 'relative', alignSelf: 'flex-start' }}>
           <motion.div
             initial={{ opacity: 0, x: -80 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
             style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', lineHeight: 0.85 }}
           >
-            <span style={{
+            <span data-quake style={{
               fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
               fontSize: 'clamp(5rem, 14vw, 12rem)', color: theme.text,
               letterSpacing: '-0.04em', transition: 'color 0.3s ease',
@@ -443,14 +471,16 @@ const Hero = () => {
             transition={{ duration: 1, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
             style={{ display: 'flex', alignItems: 'center', gap: '2rem', lineHeight: 0.85 }}
           >
-            <span style={{
+            <span data-quake style={{
               fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
               fontSize: 'clamp(5rem, 14vw, 12rem)', color: 'transparent',
               WebkitTextStroke: `2px ${theme.accent}`, letterSpacing: '-0.04em',
             }}>
               {gupta}
             </span>
-            <AvailabilityPill theme={theme} />
+            <div ref={pillRef} data-quake>
+              <AvailabilityPill theme={theme} />
+            </div>
           </motion.div>
         </div>
 
@@ -465,13 +495,13 @@ const Hero = () => {
           }}
         >
           {[{ n: '5+', l: 'Projects' }, { n: '10+', l: 'Tech Stacks' }, { n: '∞', l: 'Learning' }].map(({ n, l }, i) => (
-            <div key={l} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <div key={l} data-quake style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.4rem', color: theme.accent }}>{n}</span>
               <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: theme.muted, letterSpacing: '0.1em' }}>{l.toUpperCase()}</span>
               {i < 2 && <span style={{ marginLeft: '3rem', color: theme.border }}>|</span>}
             </div>
           ))}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div data-quake style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1rem', color: theme.textSub }}>{typed}</span>
             <motion.span
               animate={{ opacity: [1, 0, 1] }}
@@ -487,10 +517,10 @@ const Hero = () => {
           transition={{ delay: 1.3, duration: 0.8 }}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem' }}
         >
-          <p style={{ color: theme.muted, fontSize: '0.95rem', lineHeight: 1.7, maxWidth: '420px', fontWeight: 300 }}>
+          <p data-quake style={{ color: theme.muted, fontSize: '0.95rem', lineHeight: 1.7, maxWidth: '420px', fontWeight: 300 }}>
             I build things for the web — scalable backends, clean APIs, and fast frontends. Focused on writing code that's functional, efficient, and actually shipped.
           </p>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div data-quake style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <motion.button
               onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
               whileHover={{ scale: 1.04, boxShadow: `0 8px 32px ${theme.accentGlow}` }}
@@ -501,8 +531,9 @@ const Hero = () => {
                 fontSize: '0.85rem', letterSpacing: '0.08em', cursor: 'none',
                 transition: 'background 0.5s ease',
               }}
+              className="roll-link"
             >
-              VIEW WORK →
+              <RollText text="VIEW WORK →" />
             </motion.button>
             <motion.button
               onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
@@ -514,8 +545,9 @@ const Hero = () => {
                 fontWeight: 500, fontSize: '0.85rem', letterSpacing: '0.08em', cursor: 'none',
                 transition: 'border-color 0.3s ease, color 0.3s ease',
               }}
+              className="roll-link"
             >
-              CONTACT
+              <RollText text="CONTACT" />
             </motion.button>
           </div>
         </motion.div>

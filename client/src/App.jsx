@@ -21,7 +21,7 @@ const PortfolioSite = () => {
   useSmoothScroll();
 
   return (
-    <div style={{ background: theme.bg, minHeight: '100vh', transition: 'background 0.5s ease, color 0.5s ease' }}>
+    <div style={{ background: theme.bg, minHeight: '100vh', transition: 'background 0.5s ease, color 0.5s ease', '--theme-accent': theme.accent }}>
       <CustomCursor />
       <NoiseOverlay opacity={theme.noiseOpacity} />
 
