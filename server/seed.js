@@ -10,7 +10,7 @@ const projects = [
     tags: ['React', 'Node.js', 'MongoDB', 'Gemini AI', 'Maps API'],
     github: 'https://github.com/Ayush-Gupta-0212/Software-for-Smart-City',
     live: 'https://smart-city-frontend.onrender.com',
-    image: '/vice-city.png',
+    image: '/vice-city.webp',
     featured: true,
     year: 2026,
     order: 1
@@ -21,7 +21,7 @@ const projects = [
     tags: ['PHP', 'Tailwind CSS', 'AI Assistant Chatbot'],
     github: 'https://github.com/Ayush-Gupta-0212/AgriPower',
     live: 'https://agripower-qani.onrender.com/',
-    image: '/agripower.png',
+    image: '/agripower.webp',
     featured: true,
     year: 2025,
     order: 2
@@ -32,7 +32,7 @@ const projects = [
     tags: ['React', 'Python', 'FastAPI', 'KNN', 'LLM (OpenRouter)'],
     github: 'https://github.com/Ayush-Gupta-0212/CineVerse',
     live: 'https://github.com/Ayush-Gupta-0212/CineVerse',
-    image: '/cineverse.png',
+    image: '/cineverse.webp',
     featured: true,
     year: 2025,
     order: 3

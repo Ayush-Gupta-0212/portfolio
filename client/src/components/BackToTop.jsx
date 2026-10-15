@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
+import { scrollToTarget } from '../lib/scroll';
 
 const BackToTop = () => {
   const { theme } = useTheme();
@@ -26,7 +27,7 @@ const BackToTop = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, [rawProgress]);
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scrollToTop = () => scrollToTarget(0);
 
   return (
     <AnimatePresence>
@@ -53,7 +54,6 @@ const BackToTop = () => {
             border: 'none',
             padding: 0,
             cursor: 'none',
-            outline: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

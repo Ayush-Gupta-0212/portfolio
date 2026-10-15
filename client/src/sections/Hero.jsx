@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import * as THREE from 'three';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import HeroMonogram from '../components/HeroMonogram';
 import RollText from '../components/reveal/RollText';
+import { scrollToTarget } from '../lib/scroll';
+
+const YEAR = new Date().getFullYear();
+const ROLES = ['Full Stack Developer', 'React & Node.js', 'REST APIs', 'MongoDB & SQL', 'Creative Coding'];
 
 /* ── Scramble hook ── */
 const useScramble = (text, trigger) => {
@@ -44,9 +48,9 @@ const AvailabilityPill = ({ theme }) => (
       <motion.div
         animate={{ opacity: [1, 0.2, 1] }}
         transition={{ duration: 1.6, repeat: Infinity }}
-        style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }}
+        style={{ width: 7, height: 7, borderRadius: '50%', background: theme.success, flexShrink: 0 }}
       />
-      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: '#22c55e', letterSpacing: '0.12em' }}>OPEN TO WORK</span>
+      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: theme.success, letterSpacing: '0.12em' }}>OPEN TO WORK</span>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
       <div style={{ width: 7, height: 7, flexShrink: 0 }} />
@@ -54,7 +58,7 @@ const AvailabilityPill = ({ theme }) => (
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
       <div style={{ width: 7, height: 7, flexShrink: 0 }} />
-      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>© 2026</span>
+      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>© {YEAR}</span>
     </div>
   </motion.div>
 );
@@ -181,14 +185,13 @@ const Hero = () => {
     mouseY.set(e.clientY - rect.top);
   }, [mouseX, mouseY]);
 
-  const roles = ['Full Stack Developer', 'React & Node.js', 'REST APIs', 'MongoDB & SQL', 'Creative Coding'];
   const [roleIdx, setRoleIdx] = useState(0);
   const [typed, setTyped] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [tickerHovered, setTickerHovered] = useState(false);
 
   useEffect(() => {
-    const current = roles[roleIdx];
+    const current = ROLES[roleIdx];
     let timeout;
     if (!deleting && typed.length < current.length) {
       timeout = setTimeout(() => setTyped(current.slice(0, typed.length + 1)), 65);
@@ -199,7 +202,7 @@ const Hero = () => {
     } else if (deleting && typed.length === 0) {
       timeout = setTimeout(() => {
         setDeleting(false);
-        setRoleIdx(i => (i + 1) % roles.length);
+        setRoleIdx(i => (i + 1) % ROLES.length);
       }, 0);
     }
     return () => clearTimeout(timeout);
@@ -232,10 +235,12 @@ const Hero = () => {
             {[...Array(6)].flatMap(() =>
               ['FULL STACK DEVELOPER', '•', 'REACT & NODE.JS', '•', 'REST APIs', '•', 'MONGODB & SQL', '•', 'OPEN SOURCE', '•']
             ).map((t, i) => (
-              <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: i % 2 === 1 ? theme.accent : theme.muted, letterSpacing: '0.15em' }}>{t}</span>
+              <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: i % 2 === 1 ? theme.accentInk : theme.muted, letterSpacing: '0.15em' }}>{t}</span>
             ))}
           </div>
         </div>
+
+        <h1 className="sr-only">Ayush Gupta — Full Stack Developer</h1>
 
         {/* Main content — top-aligned, starts below ticker */}
         <div style={{
@@ -254,7 +259,7 @@ const Hero = () => {
             style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}
           >
             <span style={{ width: '1.5rem', height: '1px', background: theme.accent, display: 'block', flexShrink: 0 }} />
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: theme.muted, letterSpacing: '0.2em' }}>PORTFOLIO / 2026</span>
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: theme.muted, letterSpacing: '0.2em' }}>PORTFOLIO / {YEAR}</span>
           </motion.div>
 
           {/* Name block */}
@@ -264,7 +269,7 @@ const Hero = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.9, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <span style={{
+              <span aria-hidden="true" style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: 'clamp(3.2rem, 20vw, 5.5rem)',
@@ -280,7 +285,7 @@ const Hero = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.9, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
             >
-              <span style={{
+              <span aria-hidden="true" style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: 'clamp(3.2rem, 20vw, 5.5rem)',
@@ -304,9 +309,9 @@ const Hero = () => {
             <motion.div
               animate={{ opacity: [1, 0.2, 1] }}
               transition={{ duration: 1.6, repeat: Infinity }}
-              style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }}
+              style={{ width: 6, height: 6, borderRadius: '50%', background: theme.success, flexShrink: 0 }}
             />
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: '#22c55e', letterSpacing: '0.1em' }}>OPEN TO WORK</span>
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.success, letterSpacing: '0.1em' }}>OPEN TO WORK</span>
             <span style={{ color: theme.border, fontSize: '0.7rem' }}>·</span>
             <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>INDIA 🇮🇳</span>
           </motion.div>
@@ -375,7 +380,7 @@ const Hero = () => {
             style={{ display: 'flex', gap: '0.75rem' }}
           >
             <motion.button
-              onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => scrollToTarget('#projects')}
               whileTap={{ scale: 0.97 }}
               style={{
                 flex: 1, padding: '0.9rem 1rem',
@@ -388,7 +393,7 @@ const Hero = () => {
               VIEW WORK →
             </motion.button>
             <motion.button
-              onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => scrollToTarget('#contact')}
               whileTap={{ scale: 0.97 }}
               style={{
                 flex: 1, padding: '0.9rem 1rem',
@@ -440,10 +445,12 @@ const Hero = () => {
           {[...Array(6)].flatMap(() =>
             ['FULL STACK DEVELOPER', '•', 'REACT & NODE.JS', '•', 'REST APIs', '•', 'MONGODB & SQL', '•', 'CREATIVE CODING', '•']
           ).map((t, i) => (
-            <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: i % 2 === 1 ? theme.accent : theme.muted, letterSpacing: '0.2em' }}>{t}</span>
+            <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: i % 2 === 1 ? theme.accentInk : theme.muted, letterSpacing: '0.2em' }}>{t}</span>
           ))}
         </div>
       </div>
+
+      <h1 className="sr-only">Ayush Gupta — Full Stack Developer</h1>
 
       {/* Main content */}
       <div style={{ position: 'relative', zIndex: 3, padding: '4rem 4rem 0', display: 'flex', flexDirection: 'column' }}>
@@ -456,7 +463,7 @@ const Hero = () => {
             transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
             style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', lineHeight: 0.85 }}
           >
-            <span data-quake style={{
+            <span data-quake aria-hidden="true" style={{
               fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
               fontSize: 'clamp(5rem, 14vw, 12rem)', color: theme.text,
               letterSpacing: '-0.04em', transition: 'color 0.3s ease',
@@ -471,7 +478,7 @@ const Hero = () => {
             transition={{ duration: 1, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
             style={{ display: 'flex', alignItems: 'center', gap: '2rem', lineHeight: 0.85 }}
           >
-            <span data-quake style={{
+            <span data-quake aria-hidden="true" style={{
               fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
               fontSize: 'clamp(5rem, 14vw, 12rem)', color: 'transparent',
               WebkitTextStroke: `2px ${theme.accent}`, letterSpacing: '-0.04em',
@@ -522,7 +529,7 @@ const Hero = () => {
           </p>
           <div data-quake style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <motion.button
-              onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => scrollToTarget('#projects')}
               whileHover={{ scale: 1.04, boxShadow: `0 8px 32px ${theme.accentGlow}` }}
               whileTap={{ scale: 0.97 }}
               style={{
@@ -536,8 +543,8 @@ const Hero = () => {
               <RollText text="VIEW WORK →" />
             </motion.button>
             <motion.button
-              onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-              whileHover={{ scale: 1.04, borderColor: theme.accent, color: theme.accent }}
+              onClick={() => scrollToTarget('#contact')}
+              whileHover={{ scale: 1.04, borderColor: theme.accent, color: theme.accentInk }}
               whileTap={{ scale: 0.97 }}
               style={{
                 padding: '0.9rem 2.2rem', background: 'transparent', color: theme.textSub,
@@ -563,7 +570,7 @@ const Hero = () => {
           color: theme.muted, letterSpacing: '0.2em', zIndex: 3,
         }}
       >
-        AYUSH GUPTA — PORTFOLIO 2026
+        AYUSH GUPTA — PORTFOLIO {YEAR}
       </motion.div>
 
       {/* Scroll indicator */}

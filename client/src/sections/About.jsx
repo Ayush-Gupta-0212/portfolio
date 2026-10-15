@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { gsap, prefersReducedMotion } from '../lib/gsap';
 import ScrollRevealText from '../components/reveal/ScrollRevealText';
@@ -84,7 +84,11 @@ const PhotoCard = ({ theme, mode, isMobile }) => {
         <img
           ref={imgRef}
           src="/ayush-portrait.jpg"
-          alt="Ayush Gupta"
+          alt="Portrait of Ayush Gupta"
+          loading="lazy"
+          decoding="async"
+          width={824}
+          height={1104}
           style={{
             width: '100%', display: 'block', aspectRatio: '4/5',
             objectFit: 'cover', objectPosition: 'center top',
@@ -164,7 +168,7 @@ const About = () => {
         </div>
 
         <div style={{ gridColumn: isMobile ? 'auto' : '6 / span 3' }}>
-          <BlurReveal as="span" by="chars" style={{ display: 'block', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.accent, marginBottom: '1.2rem' }}>
+          <BlurReveal as="span" by="chars" style={{ display: 'block', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.accentInk, marginBottom: '1.2rem' }}>
             ✦ PHILOSOPHY
           </BlurReveal>
           <BlurReveal as="p" style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', lineHeight: 1.35, fontWeight: 500, letterSpacing: '-0.02em', color: theme.text }}>
@@ -185,7 +189,7 @@ const About = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="roll-link"
-                style={{ fontFamily: mono, fontSize: '0.75rem', letterSpacing: '0.12em', color: theme.accent, textDecoration: 'none' }}
+                style={{ fontFamily: mono, fontSize: '0.75rem', letterSpacing: '0.12em', color: theme.accentInk, textDecoration: 'none' }}
               >
                 <RollText text={`${label.toUpperCase()} ↗`} />
               </a>

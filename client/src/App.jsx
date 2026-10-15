@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
+import { ThemeProvider } from './context/ThemeContext';
+import { useTheme } from './context/theme';
 import CustomCursor from './components/CustomCursor';
 import NoiseOverlay from './components/NoiseOverlay';
 import Preloader from './components/Preloader';
@@ -21,7 +22,8 @@ const PortfolioSite = () => {
   useSmoothScroll();
 
   return (
-    <div style={{ background: theme.bg, minHeight: '100vh', transition: 'background 0.5s ease, color 0.5s ease', '--theme-accent': theme.accent }}>
+    <div style={{ background: theme.bg, minHeight: '100vh', transition: 'background 0.5s ease, color 0.5s ease', '--theme-accent': theme.accent, '--theme-accent-ink': theme.accentInk, '--theme-muted': theme.muted }}>
+      <a href="#main" className="skip-link">Skip to content</a>
       <CustomCursor />
       <NoiseOverlay opacity={theme.noiseOpacity} />
 
@@ -33,7 +35,7 @@ const PortfolioSite = () => {
         <>
           <Navigation />
           <BackToTop />
-          <main>
+          <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
             <Hero />
             <div style={{ height: '1px', background: theme.border, maxWidth: '1400px', margin: '0 auto' }} />
             <About />
@@ -54,7 +56,10 @@ const PortfolioSite = () => {
 
 const App = () => (
   <ThemeProvider>
-    <PortfolioSite />
+    {/* Framer Motion follows the OS "reduce motion" setting, like the GSAP/WebGL parts */}
+    <MotionConfig reducedMotion="user">
+      <PortfolioSite />
+    </MotionConfig>
   </ThemeProvider>
 );
 

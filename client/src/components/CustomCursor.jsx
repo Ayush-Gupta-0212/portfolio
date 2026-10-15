@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Touch devices keep their native interaction — no custom cursor
+const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 const CustomCursor = () => {
   const dotRef = useRef(null);
   const ringRef = useRef(null);
   const [hovering, setHovering] = useState(false);
   const [mode, setMode] = useState(null);
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   // 3D scenes drive contextual cursor states (hold / charging / drag / view)
   useEffect(() => {

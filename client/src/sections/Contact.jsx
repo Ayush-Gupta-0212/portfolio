@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import SectionLabel from '../components/reveal/SectionLabel';
 import LineReveal from '../components/reveal/LineReveal';
 import BlurReveal from '../components/reveal/BlurReveal';
 import RollText from '../components/reveal/RollText';
 import Wordmark from '../components/reveal/Wordmark';
+
+const EMAIL = 'itsayush0212@gmail.com';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/Ayush-Gupta-0212' },
@@ -19,7 +22,7 @@ const Contact = () => {
   const inView = useInView(ref, { once: true, margin: '-100px' });
   const { theme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', message: '', botcheck: '' });
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
 
@@ -27,8 +30,23 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const message = form.message.trim();
+    if (!name || !email || !message) {
       setError('All fields are required.');
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    // Honeypot: real people never see this field, bots fill it in.
+    if (form.botcheck) {
+      setError('');
+      setStatus('success');
+      setForm({ name: '', email: '', message: '', botcheck: '' });
       return;
     }
 
@@ -41,10 +59,11 @@ const Contact = () => {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
           access_key: "95dfe3c6-05f1-4464-9bcd-c656bef0c693",
-          name: form.name,
-          email: form.email,
-          message: form.message,
-          subject: `New Portfolio Contact from ${form.name}`
+          name,
+          email,
+          message,
+          subject: `New Portfolio Contact from ${name}`,
+          botcheck: false,
         })
       });
 
@@ -52,7 +71,7 @@ const Contact = () => {
 
       if (result.success) {
         setStatus('success');
-        setForm({ name: '', email: '', message: '' });
+        setForm({ name: '', email: '', message: '', botcheck: '' });
       } else {
         setStatus('error');
         setError(result.message || 'Failed to send. Please try again.');
@@ -115,13 +134,17 @@ const Contact = () => {
             transition={{ duration: 0.8, delay: 0.35 }}
           >
             {[
-              { label: 'Email', value: 'itsayush0212@gmail.com' },
+              { label: 'Email', value: EMAIL, href: `mailto:${EMAIL}` },
               { label: 'Location', value: 'India 🇮🇳' },
               { label: 'Status', value: '🟢 Open to opportunities' },
-            ].map(({ label, value }) => (
+            ].map(({ label, value, href }) => (
               <div key={label} style={{ display: 'flex', gap: '1.5rem', marginBottom: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, width: '4.5rem', flexShrink: 0, paddingTop: '2px' }}>{label}</span>
-                <span style={{ color: theme.textSub, fontSize: '0.9rem', wordBreak: 'break-word' }}>{value}</span>
+                {href ? (
+                  <a href={href} className="footer-link" style={{ color: theme.textSub, fontSize: '0.9rem', wordBreak: 'break-word', textDecoration: 'none' }}>{value}</a>
+                ) : (
+                  <span style={{ color: theme.textSub, fontSize: '0.9rem', wordBreak: 'break-word' }}>{value}</span>
+                )}
               </div>
             ))}
           </motion.div>
@@ -134,15 +157,21 @@ const Contact = () => {
           animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
           transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+          noValidate
+          aria-describedby={error ? 'contact-error' : undefined}
         >
-          {[{ name: 'name', placeholder: 'Your Name', type: 'text' },
-          { name: 'email', placeholder: 'Your Email', type: 'email' }].map(({ name, placeholder, type }) => (
+          {[{ name: 'name', label: 'Your name', placeholder: 'Your Name', type: 'text', autoComplete: 'name' },
+          { name: 'email', label: 'Your email', placeholder: 'Your Email', type: 'email', autoComplete: 'email' }].map(({ name, label, placeholder, type, autoComplete }) => (
             <div key={name} style={{ marginBottom: '1.5rem' }}>
+              <label htmlFor={`contact-${name}`} className="sr-only">{label}</label>
               <input
+                id={`contact-${name}`}
                 style={inputStyle}
                 type={type} name={name} value={form[name]}
                 onChange={handleChange} placeholder={placeholder}
-                autoComplete="off"
+                autoComplete={autoComplete}
+                required
+                aria-invalid={Boolean(error) && !form[name].trim()}
                 onFocus={e => e.target.style.borderBottomColor = theme.accent}
                 onBlur={e => e.target.style.borderBottomColor = theme.border}
               />
@@ -150,22 +179,36 @@ const Contact = () => {
           ))}
 
           <div style={{ marginBottom: '2rem' }}>
+            <label htmlFor="contact-message" className="sr-only">Your message</label>
             <textarea
+              id="contact-message"
               style={{ ...inputStyle, resize: 'none' }}
               name="message" value={form.message}
               onChange={handleChange}
               placeholder="Tell me about your project..."
               rows={5}
+              required
+              aria-invalid={Boolean(error) && !form.message.trim()}
               onFocus={e => e.target.style.borderBottomColor = theme.accent}
               onBlur={e => e.target.style.borderBottomColor = theme.border}
             />
           </div>
 
+          {/* Honeypot — hidden from people and assistive tech, tempting to bots */}
+          <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+            <label htmlFor="contact-botcheck">Leave this field empty</label>
+            <input id="contact-botcheck" type="text" name="botcheck" tabIndex={-1} autoComplete="off" value={form.botcheck} onChange={handleChange} />
+          </div>
+
           {error && (
-            <p style={{ color: '#ff4466', fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', marginBottom: '1rem' }}>
+            <p id="contact-error" role="alert" style={{ color: theme.danger, fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', marginBottom: '1rem' }}>
               {error}
             </p>
           )}
+
+          <span className="sr-only" role="status" aria-live="polite">
+            {status === 'loading' ? 'Sending your message…' : status === 'success' ? 'Message sent. Talk soon.' : ''}
+          </span>
 
           <AnimatePresence mode="wait">
             {status === 'success' ? (
@@ -174,7 +217,7 @@ const Contact = () => {
                 style={{
                   padding: '1.2rem',
                   border: `1px solid ${theme.accentBorder}`,
-                  color: theme.accent,
+                  color: theme.accentInk,
                   fontFamily: "'Space Mono', monospace", fontSize: '0.8rem', letterSpacing: '0.05em',
                 }}
               >
@@ -183,6 +226,7 @@ const Contact = () => {
             ) : (
               <motion.button key="btn" type="submit" className="roll-link"
                 disabled={status === 'loading'}
+                aria-busy={status === 'loading'}
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                 style={{
                   padding: '1.1rem', background: theme.accent,
@@ -217,7 +261,7 @@ const Contact = () => {
         }}
       >
         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted }}>
-          © 2026 Ayush Gupta
+          © {new Date().getFullYear()} Ayush Gupta
         </span>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
           {socials.map(({ label, href }) => (

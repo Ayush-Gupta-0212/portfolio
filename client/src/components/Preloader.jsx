@@ -53,11 +53,7 @@ const RadarCanvas = () => {
       ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
 
-      // Sweep gradient
-      const grad = ctx.createConicalGradient?.(cx, cy, angle - 1.2, angle)
-        ?? (() => { const g = ctx.createLinearGradient(0, 0, SIZE, 0); return g; })();
-
-      // Fallback sweep — draw a conic arc:
+      // Sweep: a radially-faded arc trailing the beam
       ctx.save();
       const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
       sweepGrad.addColorStop(0, 'rgba(200,255,0,0.25)');
@@ -212,7 +208,10 @@ const Preloader = ({ onComplete }) => {
         />
       ))}
 
+      <span className="sr-only" role="status">Loading Ayush Gupta&apos;s portfolio…</span>
+
       <motion.div
+        aria-hidden="true"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0, scale: 0.97, filter: 'blur(8px)' }}
         transition={{ duration: 0.35, ease: BELT_EASE }}
@@ -258,7 +257,7 @@ const Preloader = ({ onComplete }) => {
             top: '2rem', left: '3rem',
             fontFamily: "'Space Mono', monospace",
             fontSize: '0.65rem',
-            color: '#333',
+            color: '#7a7a7a',
             letterSpacing: '0.15em',
           }}
         >
@@ -350,7 +349,7 @@ const Preloader = ({ onComplete }) => {
             style={{
               fontFamily: "'Space Mono', monospace",
               fontSize: '0.6rem',
-              color: '#444',
+              color: '#7a7a7a',
               letterSpacing: '0.15em',
             }}
           >
@@ -367,7 +366,7 @@ const Preloader = ({ onComplete }) => {
             }}
           >
             {String(count).padStart(3, '0')}
-            <span style={{ color: '#333', fontSize: '0.6rem' }}>%</span>
+            <span style={{ color: '#7a7a7a', fontSize: '0.6rem' }}>%</span>
           </span>
         </div>
 
@@ -383,7 +382,7 @@ const Preloader = ({ onComplete }) => {
             zIndex: 2,
           }}
         >
-          {['REACT v18', 'THREE.JS', 'NODE.JS', 'MONGODB'].map((item, i) => (
+          {['REACT 19', 'THREE.JS', 'NODE.JS', 'MONGODB'].map((item, i) => (
             <motion.span
               key={item}
               initial={{ opacity: 0, y: 10 }}
@@ -431,7 +430,7 @@ const LiveTime = () => {
         top: '2rem', right: '3rem',
         fontFamily: "'Space Mono', monospace",
         fontSize: '0.65rem',
-        color: '#333',
+        color: '#7a7a7a',
         letterSpacing: '0.15em',
       }}
     >

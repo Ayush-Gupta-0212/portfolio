@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://portfolio-1zo9.vercel.app/sitemap.xml

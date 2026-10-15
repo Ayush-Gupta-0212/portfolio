@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import RollText from './reveal/RollText';
+import { scrollToTarget } from '../lib/scroll';
 
 const navItems = [
   { label: 'Home', href: '#hero' },
@@ -39,10 +40,8 @@ const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
-
-  useEffect(() => {
-    if (!isMobile) setMenuOpen(false);
-  }, [isMobile]);
+  // the dropdown only exists on mobile; derive it rather than syncing state
+  const menuShown = isMobile && menuOpen;
 
   useEffect(() => {
     const onScroll = () => {
@@ -64,15 +63,17 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, [menuOpen]);
 
-  const scrollTo = (href) => {
-    const id = href.replace('#', '');
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  // real anchors (crawlable, middle-click friendly), smooth-scrolled through Lenis
+  const go = (e, href) => {
+    e.preventDefault();
+    scrollToTarget(href);
     setMenuOpen(false);
   };
 
   return (
     <>
       <motion.nav
+        aria-label="Primary"
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -84,33 +85,41 @@ const Navigation = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: scrolled || menuOpen ? theme.navBg : 'transparent',
-          backdropFilter: scrolled || menuOpen ? 'blur(20px)' : 'none',
-          borderBottom: scrolled || menuOpen ? `1px solid ${theme.border}` : 'none',
+          background: scrolled || menuShown ? theme.navBg : 'transparent',
+          backdropFilter: scrolled || menuShown ? 'blur(20px)' : 'none',
+          borderBottom: scrolled || menuShown ? `1px solid ${theme.border}` : 'none',
           transition: 'background 0.4s ease, border-color 0.4s ease',
         }}
       >
         {/* Logo */}
-        <div style={{
-          fontFamily: "'Space Mono', monospace",
-          fontSize: '0.8rem',
-          letterSpacing: '0.15em',
-          color: theme.text,
-        }}>
-          AG<span style={{ color: theme.accent }}>.</span>DEV
-        </div>
+        <a
+          href="#hero"
+          onClick={(e) => go(e, '#hero')}
+          aria-label="AG.DEV — back to top"
+          style={{
+            fontFamily: "'Space Mono', monospace",
+            fontSize: '0.8rem',
+            letterSpacing: '0.15em',
+            color: theme.text,
+            textDecoration: 'none',
+          }}
+        >
+          AG<span style={{ color: theme.accentInk }}>.</span>DEV
+        </a>
 
         {/* Desktop nav links */}
         {!isMobile && (
           <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
             {navItems.map(({ label, href }) => (
-              <button
+              <a
                 key={label}
-                onClick={() => scrollTo(href)}
+                href={href}
+                onClick={(e) => go(e, href)}
+                aria-current={active === label ? 'location' : undefined}
                 className="roll-link"
                 style={{
-                  background: 'none', border: 'none',
-                  color: active === label ? theme.accent : theme.muted,
+                  textDecoration: 'none',
+                  color: active === label ? theme.accentInk : theme.muted,
                   fontFamily: "'Space Grotesk', sans-serif",
                   fontSize: '0.85rem',
                   letterSpacing: '0.05em',
@@ -132,14 +141,15 @@ const Navigation = () => {
                   />
                 )}
                 <RollText text={label} />
-              </button>
+              </a>
             ))}
 
             <motion.button
               onClick={toggle}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              title={mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               style={{
                 background: theme.accentDim,
                 border: `1px solid ${theme.accentBorder}`,
@@ -169,6 +179,7 @@ const Navigation = () => {
             <motion.button
               onClick={toggle}
               whileTap={{ scale: 0.9 }}
+              aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               style={{
                 background: theme.accentDim,
                 border: `1px solid ${theme.accentBorder}`,
@@ -183,7 +194,9 @@ const Navigation = () => {
 
             <button
               onClick={() => setMenuOpen(v => !v)}
-              aria-label="Toggle menu"
+              aria-label={menuShown ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuShown}
+              aria-controls="mobile-menu"
               style={{
                 background: 'none', border: 'none',
                 cursor: 'pointer', padding: '0.4rem',
@@ -192,17 +205,17 @@ const Navigation = () => {
               }}
             >
               <motion.span
-                animate={{ rotate: menuOpen ? 45 : 0, y: menuOpen ? 7 : 0 }}
+                animate={{ rotate: menuShown ? 45 : 0, y: menuShown ? 7 : 0 }}
                 transition={{ duration: 0.25 }}
                 style={{ width: 22, height: 1.5, background: theme.text, display: 'block', transformOrigin: 'center', borderRadius: 2 }}
               />
               <motion.span
-                animate={{ opacity: menuOpen ? 0 : 1, scaleX: menuOpen ? 0 : 1 }}
+                animate={{ opacity: menuShown ? 0 : 1, scaleX: menuShown ? 0 : 1 }}
                 transition={{ duration: 0.2 }}
                 style={{ width: 22, height: 1.5, background: theme.text, display: 'block', borderRadius: 2 }}
               />
               <motion.span
-                animate={{ rotate: menuOpen ? -45 : 0, y: menuOpen ? -7 : 0 }}
+                animate={{ rotate: menuShown ? -45 : 0, y: menuShown ? -7 : 0 }}
                 transition={{ duration: 0.25 }}
                 style={{ width: 22, height: 1.5, background: theme.text, display: 'block', transformOrigin: 'center', borderRadius: 2 }}
               />
@@ -213,9 +226,10 @@ const Navigation = () => {
 
       {/* Mobile dropdown menu */}
       <AnimatePresence>
-        {menuOpen && (
+        {menuShown && (
           <motion.div
             key="mobile-menu"
+            id="mobile-menu"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -234,13 +248,16 @@ const Navigation = () => {
             }}
           >
             {navItems.map(({ label, href }) => (
-              <button
+              <a
                 key={label}
-                onClick={() => scrollTo(href)}
+                href={href}
+                onClick={(e) => go(e, href)}
+                aria-current={active === label ? 'location' : undefined}
                 style={{
-                  background: 'none', border: 'none',
+                  display: 'block',
+                  textDecoration: 'none',
                   borderBottom: `1px solid ${theme.border}`,
-                  color: active === label ? theme.accent : theme.textSub,
+                  color: active === label ? theme.accentInk : theme.textSub,
                   fontFamily: "'Space Grotesk', sans-serif",
                   fontSize: '1rem',
                   letterSpacing: '0.05em',
@@ -252,7 +269,7 @@ const Navigation = () => {
                 }}
               >
                 {label}
-              </button>
+              </a>
             ))}
           </motion.div>
         )}

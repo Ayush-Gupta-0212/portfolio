@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const Contact = require('../models/Contact');
@@ -17,8 +18,20 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Admin-only: disabled unless ADMIN_TOKEN is set, and then the request must
+// send it in the `x-admin-token` header. Anything else looks like a 404.
+const requireAdmin = (req, res, next) => {
+  const expected = process.env.ADMIN_TOKEN;
+  const given = req.get('x-admin-token') || '';
+  const ok = expected
+    && given.length === expected.length
+    && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  if (!ok) return res.status(404).json({ message: 'Not found' });
+  next();
+};
+
 // GET all messages (admin)
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const messages = await Contact.find().sort({ createdAt: -1 });
     res.json(messages);

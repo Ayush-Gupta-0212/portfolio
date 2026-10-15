@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { gsap, ScrollTrigger, prefersReducedMotion } from '../lib/gsap';
 import { CertSpiral, PHASE } from '../three/certSpiral/CertSpiral';
@@ -12,7 +12,7 @@ const CERTIFICATES = [
     issuer: 'Google · Coursera',
     date: 'Sep 2024',
     link: 'https://coursera.org/share/4e4c7de8a17077c5b7739a5b60a9ff4c',
-    image: '/cert-google-networking.png',
+    image: '/cert-google-networking.webp',
   },
   {
     id: '2',
@@ -20,7 +20,7 @@ const CERTIFICATES = [
     issuer: 'Infosys Springboard',
     date: 'Aug 2025',
     link: 'https://verify.onwingspan.com/',
-    image: '/cert-infosys-prompt.png',
+    image: '/cert-infosys-prompt.webp',
   },
   {
     id: '3',
@@ -28,7 +28,7 @@ const CERTIFICATES = [
     issuer: 'NPTEL · IIT Kharagpur · Elite',
     date: 'Jan–Apr 2025',
     link: 'https://archive.nptel.ac.in/content/noc/NOC25/SEM1/Ecertificates/106/noc25-cs11/Course/NPTEL25CS11S143730205304237111.pdf',
-    image: '/cert-nptel-cloud.png',
+    image: '/cert-nptel-cloud.webp',
   },
   {
     id: '4',
@@ -36,7 +36,7 @@ const CERTIFICATES = [
     issuer: 'LPU · iamNEO · 72 hrs',
     date: 'Dec 2024',
     link: 'https://lpucolab438.examly.io/certificate/U2FsdGVkX1%2FFrU7t0k%2FGDI6CamFFUjuhLa6tCSJi1MY%3D',
-    image: '/cert-lpu-dsa.png',
+    image: '/cert-lpu-dsa.webp',
   },
   {
     id: '5',
@@ -44,7 +44,7 @@ const CERTIFICATES = [
     issuer: 'LPU · iamNEO · 72 hrs',
     date: 'Dec 2024',
     link: 'https://lpucolab438.examly.io/certificate/U2FsdGVkX19K1WhCp9UOMqDVZwHp5TWa00dRMvED0Vs%3D',
-    image: '/cert-lpu-oop.png',
+    image: '/cert-lpu-oop.webp',
   },
 ];
 
@@ -55,16 +55,16 @@ const openCert = (i) => window.open(CERTIFICATES[i].link, '_blank', 'noopener,no
 const CertCard = ({ cert, theme, isMobile, mediaRef }) => (
   <a className="cert-card" href={cert.link} target="_blank" rel="noopener noreferrer" style={{ '--card-border': theme.border }}>
     <div ref={mediaRef} className="cert-media">
-      <img src={cert.image} alt={cert.title} draggable="false" />
+      <img src={cert.image} alt={cert.title} decoding="async" draggable="false" />
     </div>
     <div className="cert-text">
-      <span style={{ display: 'block', fontFamily: mono, fontSize: isMobile ? '0.48rem' : '0.56rem', letterSpacing: '0.14em', color: theme.accent, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+      <span style={{ display: 'block', fontFamily: mono, fontSize: isMobile ? '0.48rem' : '0.56rem', letterSpacing: '0.14em', color: theme.accentInk, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
         {cert.issuer}
       </span>
       <h3 className="cert-title" style={{ fontSize: isMobile ? '0.72rem' : '0.86rem', color: theme.text }}>{cert.title}</h3>
       <div className="cert-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontFamily: mono, fontSize: isMobile ? '0.5rem' : '0.56rem', letterSpacing: '0.1em' }}>
         <span style={{ color: theme.muted }}>{cert.date}</span>
-        <span style={{ color: theme.accent }}><RollText text="VERIFY ↗" /></span>
+        <span style={{ color: theme.accentInk }}><RollText text="VERIFY ↗" /></span>
       </div>
     </div>
   </a>

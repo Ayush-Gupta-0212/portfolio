@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { getSkills } from '../api';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import SectionLabel from '../components/reveal/SectionLabel';
 import LineReveal from '../components/reveal/LineReveal';
@@ -145,7 +145,7 @@ const Skills = () => {
             return (
               <motion.span key={skill.name}
                 animate={isActive ? {
-                  color: theme.accent,
+                  color: theme.accentInk,
                   borderColor: theme.accent,
                   background: theme.accentDim,
                 } : {
@@ -155,7 +155,7 @@ const Skills = () => {
                 }}
                 whileHover={{
                   y: -6, scale: 1.08,
-                  color: theme.accent, borderColor: theme.accent,
+                  color: theme.accentInk, borderColor: theme.accent,
                   boxShadow: `0 8px 24px ${theme.accentGlow}`,
                   background: theme.accentDim,
                 }}
