@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import * as THREE from 'three';
 import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import HeroMonogram from '../components/HeroMonogram';
 import RollText from '../components/reveal/RollText';
 import { scrollToTarget } from '../lib/scroll';
+import { useContent } from '../content/context';
+import { fullName } from '../content/store';
+import { loadParticles } from '../three/loaders';
+import { getQuality, pixelRatio } from '../lib/device';
 
 const YEAR = new Date().getFullYear();
-const ROLES = ['Full Stack Developer', 'React & Node.js', 'REST APIs', 'MongoDB & SQL', 'Creative Coding'];
 
 /* ── Scramble hook ── */
 const useScramble = (text, trigger) => {
@@ -33,7 +35,7 @@ const useScramble = (text, trigger) => {
 };
 
 /* ── Availability pill (desktop only) ── */
-const AvailabilityPill = ({ theme }) => (
+const AvailabilityPill = ({ theme, profile }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -44,18 +46,22 @@ const AvailabilityPill = ({ theme }) => (
       borderLeft: `1px solid ${theme.border}`,
     }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-      <motion.div
-        animate={{ opacity: [1, 0.2, 1] }}
-        transition={{ duration: 1.6, repeat: Infinity }}
-        style={{ width: 7, height: 7, borderRadius: '50%', background: theme.success, flexShrink: 0 }}
-      />
-      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: theme.success, letterSpacing: '0.12em' }}>OPEN TO WORK</span>
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-      <div style={{ width: 7, height: 7, flexShrink: 0 }} />
-      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>INDIA 🇮🇳</span>
-    </div>
+    {profile.available && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <motion.div
+          animate={{ opacity: [1, 0.2, 1] }}
+          transition={{ duration: 1.6, repeat: Infinity }}
+          style={{ width: 7, height: 7, borderRadius: '50%', background: theme.success, flexShrink: 0 }}
+        />
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: theme.success, letterSpacing: '0.12em' }}>{profile.availabilityLabel.toUpperCase()}</span>
+      </div>
+    )}
+    {profile.location && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ width: 7, height: 7, flexShrink: 0 }} />
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>{profile.location.toUpperCase()}</span>
+      </div>
+    )}
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
       <div style={{ width: 7, height: 7, flexShrink: 0 }} />
       <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>© {YEAR}</span>
@@ -63,68 +69,43 @@ const AvailabilityPill = ({ theme }) => (
   </motion.div>
 );
 
-/* ── Three.js canvas ── */
-const ParticlesCanvas = ({ particleColor, particleSize = 0.015, particleOpacity = 0.7, particleCount = 4000 }) => {
+/* ── Particle field (three.js loads in its own chunk, started by the preloader) ── */
+const ParticlesCanvas = ({ particleColor, particleSize = 0.015, particleOpacity = 0.7, particleCount = 4000, isMobile = false }) => {
   const canvasRef = useRef(null);
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    camera.position.z = 5;
-    const count = particleCount;
-    const positions = new Float32Array(count * 3);
-    const speeds = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 18;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 18;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 18;
-      speeds[i] = 0.0002 + Math.random() * 0.0006;
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const hex = particleColor.replace('#', '');
-    const material = new THREE.PointsMaterial({ color: parseInt(hex, 16), size: particleSize, transparent: true, opacity: particleOpacity, sizeAttenuation: true });
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-    let mouseX = 0, mouseY = 0;
-    const onMouse = (e) => { mouseX = (e.clientX / window.innerWidth - 0.5) * 2; mouseY = -(e.clientY / window.innerHeight - 0.5) * 2; };
-    window.addEventListener('mousemove', onMouse);
-    const resize = () => { camera.aspect = canvas.clientWidth / canvas.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(canvas.clientWidth, canvas.clientHeight); };
-    window.addEventListener('resize', resize);
-    let animId;
-    let onScreen = true;
-    let running = false;
-    const animate = () => {
-      // pause while scrolled away or in a background tab
-      if (!onScreen || document.hidden) { running = false; return; }
-      running = true;
-      const pos = geometry.attributes.position.array;
-      for (let i = 0; i < count; i++) { pos[i * 3 + 1] -= speeds[i]; if (pos[i * 3 + 1] < -9) pos[i * 3 + 1] = 9; }
-      geometry.attributes.position.needsUpdate = true;
-      particles.rotation.y += 0.0003; particles.rotation.x += 0.0001;
-      camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.02;
-      camera.position.y += (mouseY * 0.5 - camera.position.y) * 0.02;
-      camera.lookAt(scene.position);
-      renderer.render(scene, camera);
-      animId = requestAnimationFrame(animate);
+    const quality = getQuality();
+    if (!canvas || !quality.particles) return undefined; // low-end devices skip the extra WebGL context
+    let scene = null;
+    let cancelled = false;
+    loadParticles()
+      .then(({ HeroParticles }) => {
+        if (cancelled) return;
+        scene = new HeroParticles({
+          canvas,
+          color: particleColor,
+          size: particleSize,
+          opacity: particleOpacity,
+          count: Math.round(particleCount * quality.particles),
+          pixelRatio: pixelRatio(isMobile),
+        });
+      })
+      .catch((err) => console.warn('Hero particles disabled:', err));
+    return () => {
+      cancelled = true;
+      scene?.dispose();
     };
-    const resume = () => { if (!running && onScreen && !document.hidden) animate(); };
-    const io = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; resume(); });
-    io.observe(canvas);
-    document.addEventListener('visibilitychange', resume);
-    animate();
-    return () => { cancelAnimationFrame(animId); io.disconnect(); document.removeEventListener('visibilitychange', resume); window.removeEventListener('mousemove', onMouse); window.removeEventListener('resize', resize); renderer.dispose(); geometry.dispose(); material.dispose(); };
-  }, [particleColor, particleSize, particleOpacity, particleCount]);
+  }, [particleColor, particleSize, particleOpacity, particleCount, isMobile]);
   return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />;
 };
 
 /* ── Main Hero ── */
 const Hero = () => {
   const { theme, mode } = useTheme();
+  const { profile } = useContent().content;
+  const roles = useMemo(() => (profile.roles.length ? profile.roles : [' ']), [profile.roles]);
+  const ticker = useMemo(() => roles.flatMap((r) => [r.toUpperCase(), '•']), [roles]);
+  const name = fullName(profile);
   const sectionRef = useRef(null);
   const nameRef = useRef(null);
   const pillRef = useRef(null);
@@ -170,8 +151,8 @@ const Hero = () => {
     return () => clearTimeout(t);
   }, []);
 
-  const ayush = useScramble('AYUSH', mountScramble);
-  const gupta = useScramble('GUPTA', mountScramble);
+  const ayush = useScramble(profile.firstName.toUpperCase(), mountScramble);
+  const gupta = useScramble(profile.lastName.toUpperCase(), mountScramble);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -191,7 +172,7 @@ const Hero = () => {
   const [tickerHovered, setTickerHovered] = useState(false);
 
   useEffect(() => {
-    const current = ROLES[roleIdx];
+    const current = roles[roleIdx % roles.length];
     let timeout;
     if (!deleting && typed.length < current.length) {
       timeout = setTimeout(() => setTyped(current.slice(0, typed.length + 1)), 65);
@@ -202,11 +183,11 @@ const Hero = () => {
     } else if (deleting && typed.length === 0) {
       timeout = setTimeout(() => {
         setDeleting(false);
-        setRoleIdx(i => (i + 1) % ROLES.length);
+        setRoleIdx(i => (i + 1) % roles.length);
       }, 0);
     }
     return () => clearTimeout(timeout);
-  }, [typed, deleting, roleIdx]);
+  }, [typed, deleting, roleIdx, roles]);
 
   /* ─────────── MOBILE LAYOUT ─────────── */
   if (isMobile) {
@@ -221,6 +202,7 @@ const Hero = () => {
           particleSize={theme.particleSize}
           particleOpacity={0.5}
           particleCount={1000}
+          isMobile
         />
         <HeroMonogram sectionRef={sectionRef} getAnchor={getMobileAnchor} mode={mode} theme={theme} isMobile />
 
@@ -233,14 +215,14 @@ const Hero = () => {
         }}>
           <div className="marquee-track">
             {[...Array(6)].flatMap(() =>
-              ['FULL STACK DEVELOPER', '•', 'REACT & NODE.JS', '•', 'REST APIs', '•', 'MONGODB & SQL', '•', 'OPEN SOURCE', '•']
+              ticker
             ).map((t, i) => (
               <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: i % 2 === 1 ? theme.accentInk : theme.muted, letterSpacing: '0.15em' }}>{t}</span>
             ))}
           </div>
         </div>
 
-        <h1 className="sr-only">Ayush Gupta — Full Stack Developer</h1>
+        <h1 className="sr-only">{name} — {roles[0]}</h1>
 
         {/* Main content — top-aligned, starts below ticker */}
         <div style={{
@@ -311,9 +293,11 @@ const Hero = () => {
               transition={{ duration: 1.6, repeat: Infinity }}
               style={{ width: 6, height: 6, borderRadius: '50%', background: theme.success, flexShrink: 0 }}
             />
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.success, letterSpacing: '0.1em' }}>OPEN TO WORK</span>
-            <span style={{ color: theme.border, fontSize: '0.7rem' }}>·</span>
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>INDIA 🇮🇳</span>
+            {profile.available && (
+              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.success, letterSpacing: '0.1em' }}>{profile.availabilityLabel.toUpperCase()}</span>
+            )}
+            {profile.available && profile.location && <span style={{ color: theme.border, fontSize: '0.7rem' }}>·</span>}
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', color: theme.muted, letterSpacing: '0.1em' }}>{profile.location.toUpperCase()}</span>
           </motion.div>
 
           {/* Stats bar */}
@@ -330,11 +314,11 @@ const Hero = () => {
               padding: '0.85rem 0',
             }}
           >
-            {[{ n: '5+', l: 'Projects' }, { n: '10+', l: 'Stacks' }, { n: '∞', l: 'Learning' }].map(({ n, l }, i) => (
-              <div key={l} style={{
+            {profile.heroStats.map(({ value: n, label: l }, i) => (
+              <div key={`${l}-${i}`} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
                 flex: 1,
-                borderRight: i < 2 ? `1px solid ${theme.border}` : 'none',
+                borderRight: i < profile.heroStats.length - 1 ? `1px solid ${theme.border}` : 'none',
               }}>
                 <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: theme.accent, lineHeight: 1 }}>{n}</span>
                 <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.55rem', color: theme.muted, letterSpacing: '0.08em' }}>{l.toUpperCase()}</span>
@@ -368,7 +352,7 @@ const Hero = () => {
               maxWidth: '100%',
             }}
           >
-            I build things for the web — scalable backends, clean APIs, and fast frontends. Focused on writing code that's functional, efficient, and actually shipped.
+            {profile.heroIntro}
           </motion.p>
 
           {/* CTA buttons */}
@@ -443,14 +427,14 @@ const Hero = () => {
       >
         <div className={`marquee-track${tickerHovered ? ' slow' : ''}`}>
           {[...Array(6)].flatMap(() =>
-            ['FULL STACK DEVELOPER', '•', 'REACT & NODE.JS', '•', 'REST APIs', '•', 'MONGODB & SQL', '•', 'CREATIVE CODING', '•']
+            ticker
           ).map((t, i) => (
             <span key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: i % 2 === 1 ? theme.accentInk : theme.muted, letterSpacing: '0.2em' }}>{t}</span>
           ))}
         </div>
       </div>
 
-      <h1 className="sr-only">Ayush Gupta — Full Stack Developer</h1>
+      <h1 className="sr-only">{name} — {roles[0]}</h1>
 
       {/* Main content */}
       <div style={{ position: 'relative', zIndex: 3, padding: '4rem 4rem 0', display: 'flex', flexDirection: 'column' }}>
@@ -486,7 +470,7 @@ const Hero = () => {
               {gupta}
             </span>
             <div ref={pillRef} data-quake>
-              <AvailabilityPill theme={theme} />
+              <AvailabilityPill theme={theme} profile={profile} />
             </div>
           </motion.div>
         </div>
@@ -501,11 +485,11 @@ const Hero = () => {
             padding: '1rem 0', margin: '1.5rem 0',
           }}
         >
-          {[{ n: '5+', l: 'Projects' }, { n: '10+', l: 'Tech Stacks' }, { n: '∞', l: 'Learning' }].map(({ n, l }, i) => (
-            <div key={l} data-quake style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+          {profile.heroStats.map(({ value: n, label: l }, i) => (
+            <div key={`${l}-${i}`} data-quake style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.4rem', color: theme.accent }}>{n}</span>
               <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: theme.muted, letterSpacing: '0.1em' }}>{l.toUpperCase()}</span>
-              {i < 2 && <span style={{ marginLeft: '3rem', color: theme.border }}>|</span>}
+              {i < profile.heroStats.length - 1 && <span style={{ marginLeft: '3rem', color: theme.border }}>|</span>}
             </div>
           ))}
           <div data-quake style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -525,7 +509,7 @@ const Hero = () => {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem' }}
         >
           <p data-quake style={{ color: theme.muted, fontSize: '0.95rem', lineHeight: 1.7, maxWidth: '420px', fontWeight: 300 }}>
-            I build things for the web — scalable backends, clean APIs, and fast frontends. Focused on writing code that's functional, efficient, and actually shipped.
+            {profile.heroIntro}
           </p>
           <div data-quake style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <motion.button
@@ -570,7 +554,7 @@ const Hero = () => {
           color: theme.muted, letterSpacing: '0.2em', zIndex: 3,
         }}
       >
-        AYUSH GUPTA — PORTFOLIO {YEAR}
+        {name.toUpperCase()} — PORTFOLIO {YEAR}
       </motion.div>
 
       {/* Scroll indicator */}

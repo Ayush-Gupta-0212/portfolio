@@ -7,20 +7,17 @@ import LineReveal from '../components/reveal/LineReveal';
 import BlurReveal from '../components/reveal/BlurReveal';
 import RollText from '../components/reveal/RollText';
 import Wordmark from '../components/reveal/Wordmark';
+import { useContent } from '../content/context';
+import { fullName, socialLinks } from '../content/store';
 
-const EMAIL = 'itsayush0212@gmail.com';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-const socials = [
-  { label: 'GitHub', href: 'https://github.com/Ayush-Gupta-0212' },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/ayush-gupta-5a646b289' },
-  { label: 'Resume', href: 'https://drive.google.com/file/d/1t2lAIj8f-tA10wilV_R4o7EIoYW6DqoL/view?usp=sharing' },
-];
 
 const Contact = () => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-100px' });
   const { theme } = useTheme();
+  const { profile } = useContent().content;
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [form, setForm] = useState({ name: '', email: '', message: '', botcheck: '' });
   const [status, setStatus] = useState('idle');
@@ -53,6 +50,17 @@ const Contact = () => {
     setError('');
     setStatus('loading');
 
+    // Copy for the admin inbox. keepalive lets it finish even if the visitor leaves,
+    // and it counts as "sent" if the email service is down.
+    const savedToInbox = fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message }),
+      keepalive: true,
+    }).then((res) => res.ok, () => false);
+    // don't keep the visitor waiting on a sleeping server (the request itself carries on)
+    const inboxOk = () => Promise.race([savedToInbox, new Promise((resolve) => setTimeout(resolve, 15000, false))]);
+
     try {
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -72,12 +80,20 @@ const Contact = () => {
       if (result.success) {
         setStatus('success');
         setForm({ name: '', email: '', message: '', botcheck: '' });
+      } else if (await inboxOk()) {
+        setStatus('success');
+        setForm({ name: '', email: '', message: '', botcheck: '' });
       } else {
         setStatus('error');
         setError(result.message || 'Failed to send. Please try again.');
       }
     } catch (err) {
       console.error(err);
+      if (await inboxOk()) {
+        setStatus('success');
+        setForm({ name: '', email: '', message: '', botcheck: '' });
+        return;
+      }
       setStatus('error');
       setError('Something went wrong. Please check your connection.');
     }
@@ -125,8 +141,8 @@ const Contact = () => {
             <span className="hl">great.</span>
           </LineReveal>
 
-          <BlurReveal style={{ color: theme.muted, lineHeight: 1.9, marginBottom: '2.5rem', fontSize: '0.95rem' }}>
-            Whether you have a project in mind, a role to fill, or just want to talk shop — my inbox is always open.
+          <BlurReveal key={profile.contact.intro} style={{ color: theme.muted, lineHeight: 1.9, marginBottom: '2.5rem', fontSize: '0.95rem' }}>
+            {profile.contact.intro}
           </BlurReveal>
 
           <motion.div
@@ -134,10 +150,10 @@ const Contact = () => {
             transition={{ duration: 0.8, delay: 0.35 }}
           >
             {[
-              { label: 'Email', value: EMAIL, href: `mailto:${EMAIL}` },
-              { label: 'Location', value: 'India 🇮🇳' },
-              { label: 'Status', value: '🟢 Open to opportunities' },
-            ].map(({ label, value, href }) => (
+              { label: 'Email', value: profile.contact.email, href: `mailto:${profile.contact.email}` },
+              { label: 'Location', value: profile.location },
+              { label: 'Status', value: profile.contact.status && `🟢 ${profile.contact.status}` },
+            ].filter(({ value }) => value).map(({ label, value, href }) => (
               <div key={label} style={{ display: 'flex', gap: '1.5rem', marginBottom: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, width: '4.5rem', flexShrink: 0, paddingTop: '2px' }}>{label}</span>
                 {href ? (
@@ -261,10 +277,10 @@ const Contact = () => {
         }}
       >
         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted }}>
-          © {new Date().getFullYear()} Ayush Gupta
+          © {new Date().getFullYear()} {fullName(profile)}
         </span>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
-          {socials.map(({ label, href }) => (
+          {socialLinks(profile).map(({ label, href }) => (
             <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="roll-link footer-link"
               style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', color: theme.muted, textDecoration: 'none' }}
             >

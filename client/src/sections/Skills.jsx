@@ -1,42 +1,12 @@
-import { useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { getSkills } from '../api';
 import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import SectionLabel from '../components/reveal/SectionLabel';
 import LineReveal from '../components/reveal/LineReveal';
 import BlurReveal from '../components/reveal/BlurReveal';
-
-const FALLBACK_SKILLS = {
-  Languages: [
-    { name: 'C++', level: 75 },
-    { name: 'C', level: 70 },
-    { name: 'JavaScript', level: 85 },
-    { name: 'Python', level: 65 },
-  ],
-  Frameworks: [
-    { name: 'React.js', level: 82 },
-    { name: 'HTML / CSS', level: 88 },
-    { name: 'Tailwind CSS', level: 85 },
-    { name: 'Framer Motion', level: 65 },
-    { name: 'Node.js', level: 78 },
-    { name: 'Express.js', level: 75 },
-  ],
-  'CS Fundamentals': [
-    { name: 'Data Structures & Algorithms', level: 70 },
-    { name: 'OOP', level: 78 },
-    { name: 'Operating Systems', level: 65 },
-    { name: 'Computer Networks', level: 62 },
-    { name: 'DBMS', level: 68 },
-  ],
-  Tools: [
-    { name: 'SQL Server', level: 65 },
-    { name: 'MongoDB', level: 75 },
-    { name: 'GitHub', level: 80 },
-    { name: 'VS Code', level: 90 },
-    { name: 'Notion', level: 72 },
-  ],
-};
+import { useContent } from '../content/context';
+import { groupSkills } from '../content/store';
 
 const SkillBar = ({ name, level, inView, theme }) => (
   <div style={{ marginBottom: '1rem' }}>
@@ -64,14 +34,12 @@ const Skills = () => {
   const inView = useInView(ref, { once: true, margin: '-100px' });
   const { theme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const [grouped, setGrouped] = useState(FALLBACK_SKILLS);
-  const [activeCategory, setActiveCategory] = useState('Languages');
-
-  useEffect(() => {
-    getSkills().then(res => { if (res.data?.grouped) setGrouped(res.data.grouped); }).catch(() => {});
-  }, []);
-
+  const { content } = useContent();
+  const grouped = useMemo(() => groupSkills(content.skills), [content.skills]);
   const categories = Object.keys(grouped);
+  const [chosenCategory, setActiveCategory] = useState(null);
+  // fall back to the first category if the chosen one no longer exists
+  const activeCategory = categories.includes(chosenCategory) ? chosenCategory : categories[0];
   const currentSkills = grouped[activeCategory] || [];
 
   return (
@@ -99,8 +67,8 @@ const Skills = () => {
           >
             What I work with
           </LineReveal>
-          <BlurReveal style={{ color: theme.muted, marginBottom: '3rem', lineHeight: 1.8 }}>
-            A curated set of technologies I use to build fast, scalable, and beautiful things.
+          <BlurReveal key={content.profile.skillsIntro} style={{ color: theme.muted, marginBottom: '3rem', lineHeight: 1.8 }}>
+            {content.profile.skillsIntro}
           </BlurReveal>
 
           {/* Category tabs */}
@@ -122,7 +90,7 @@ const Skills = () => {
 
           <div>
             {currentSkills.map(skill => (
-              <SkillBar key={skill.name} name={skill.name} level={skill.level} inView={inView} theme={theme} />
+              <SkillBar key={skill._id ?? skill.name} name={skill.name} level={skill.level} inView={inView} theme={theme} />
             ))}
           </div>
         </div>
@@ -143,7 +111,7 @@ const Skills = () => {
           {Object.values(grouped).flat().map(skill => {
             const isActive = (grouped[activeCategory] || []).some(s => s.name === skill.name);
             return (
-              <motion.span key={skill.name}
+              <motion.span key={skill._id ?? skill.name}
                 animate={isActive ? {
                   color: theme.accentInk,
                   borderColor: theme.accent,
@@ -173,7 +141,7 @@ const Skills = () => {
           })}
           <div style={{ width: '100%', marginTop: '2rem', borderTop: `1px solid ${theme.border}`, paddingTop: '1.5rem' }}>
             <p style={{ color: theme.muted, fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', lineHeight: 1.8 }}>
-              Always learning. Currently deepening expertise in system design, DSA, and full-stack architecture.
+              {content.profile.skillsNote}
             </p>
           </div>
         </motion.div>

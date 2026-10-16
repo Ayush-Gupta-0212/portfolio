@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { getProjects } from '../api';
+import { useEffect, useRef } from 'react';
 import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { gsap, ScrollTrigger, prefersReducedMotion } from '../lib/gsap';
@@ -7,15 +6,10 @@ import SectionLabel from '../components/reveal/SectionLabel';
 import LineReveal from '../components/reveal/LineReveal';
 import BlurReveal from '../components/reveal/BlurReveal';
 import RollText from '../components/reveal/RollText';
+import { useContent } from '../content/context';
 
-const FALLBACK_PROJECTS = [
-  { _id: '1', title: 'Vice City — Smart City Web Platform', description: 'A full-stack smart city dashboard delivering real-time traffic alerts, live weather insights, local events, and nearby attractions — all unified with a Gemini-powered AI assistant for instant city queries.', tags: ['React', 'Node.js', 'MongoDB', 'Gemini AI', 'Maps API'], github: 'https://github.com/Ayush-Gupta-0212/Software-for-Smart-City', live: 'https://smart-city-frontend.onrender.com', featured: true, year: 2026, image: '/vice-city.webp' },
-  { _id: '2', title: 'AgriPower — Agricultural Energy Management', description: 'A web platform built to simplify electric power distribution for modern farms. Helps farmers track and manage energy consumption efficiently, with an integrated AI chatbot for real-time support and guidance.', tags: ['PHP', 'Tailwind CSS', 'AI Assistant Chatbot'], github: 'https://github.com/Ayush-Gupta-0212/AgriPower', live: 'https://agripower-qani.onrender.com/', featured: true, year: 2025, image: '/agripower.webp' },
-  { _id: '3', title: 'CineVerse — Movie Recommendation System', description: 'A full-stack recommendation engine using KNN collaborative filtering and OpenRouter LLMs to deliver personalised movie suggestions. Includes secure JWT authentication, advanced search, and a favorites management system.', tags: ['React', 'Python', 'FastAPI', 'KNN', 'LLM (OpenRouter)'], github: 'https://github.com/Ayush-Gupta-0212/CineVerse', live: 'https://github.com/Ayush-Gupta-0212/CineVerse', featured: true, year: 2025, image: '/cineverse.webp' },
-];
 
 const mono = "'Space Mono', monospace";
-const GITHUB_PROFILE = 'https://github.com/Ayush-Gupta-0212';
 const pad = (n) => String(n).padStart(2, '0');
 const setCursor = (mode) => window.dispatchEvent(new CustomEvent('cursor-mode', { detail: mode }));
 // Project images ship as WebP; older API/DB rows may still point at the original PNGs
@@ -115,7 +109,7 @@ const WorkCard = ({ project, index, total, theme, stacked }) => {
 const Projects = () => {
   const { theme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const [projects, setProjects] = useState(FALLBACK_PROJECTS);
+  const { profile, projects } = useContent().content;
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const barRef = useRef(null);
@@ -123,10 +117,6 @@ const Projects = () => {
   const counterRef = useRef(null);
   const reduced = prefersReducedMotion();
   const stacked = isMobile || reduced;
-
-  useEffect(() => {
-    getProjects().then(res => { if (res.data?.length) setProjects(res.data); }).catch(() => {});
-  }, []);
 
   /*
    * Desktop (after Trionn's selected-work track): the section pins and the
@@ -264,8 +254,8 @@ const Projects = () => {
           >
             Selected<br />work<span className="hl">.</span>
           </LineReveal>
-          <BlurReveal style={{ marginTop: '2rem', maxWidth: 400, color: theme.muted, lineHeight: 1.8, fontSize: '0.95rem' }}>
-            Things I&apos;ve designed, built and shipped — from smart-city dashboards to AI-powered recommendation engines.
+          <BlurReveal key={profile.projectsIntro} style={{ marginTop: '2rem', maxWidth: 400, color: theme.muted, lineHeight: 1.8, fontSize: '0.95rem' }}>
+            {profile.projectsIntro}
           </BlurReveal>
           {!stacked && (
             <div style={{ marginTop: '3rem', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.muted }}>
@@ -279,6 +269,7 @@ const Projects = () => {
         ))}
 
         {/* End panel */}
+        {profile.links.github && (
         <div className="work-card" style={{ ...panel, position: 'relative', alignItems: 'center', padding: stacked ? '3rem 0 1rem' : '6rem 4vw 5rem' }}>
           <PanelLine stacked={stacked} theme={theme} />
           <div className="work-inner" style={{ textAlign: 'center', maxWidth: 440 }}>
@@ -286,7 +277,7 @@ const Projects = () => {
               More experiments, side projects and code live on GitHub.
             </h3>
             <a
-              href={GITHUB_PROFILE}
+              href={profile.links.github}
               target="_blank"
               rel="noopener noreferrer"
               className="work-meta roll-link"
@@ -296,6 +287,7 @@ const Projects = () => {
             </a>
           </div>
         </div>
+        )}
       </div>
 
       {/* Progress HUD */}

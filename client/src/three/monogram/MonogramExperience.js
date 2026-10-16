@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildMonogramShards, buildCursorBlock, COMPOSITION_OFFSET_X, MONOGRAM_SIZE } from './shards';
+import { getQuality, pixelRatio } from '../../lib/device';
 
 /* ─────────────────────────────────────────────────────────────
  * Hero monogram: an extruded chrome "AG_" that can be dragged,
@@ -153,8 +154,9 @@ export class MonogramExperience {
   /* ───────────── setup ───────────── */
 
   init() {
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.5 : 1.75));
+    const quality = getQuality();
+    const renderer = new THREE.WebGLRenderer({ antialias: quality.antialias, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(pixelRatio(this.isMobile));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -201,7 +203,7 @@ export class MonogramExperience {
       side: THREE.DoubleSide,
     });
 
-    const { shards, edgeGeos } = buildMonogramShards({ seedsPerGlyph: this.isMobile ? 6 : 9 });
+    const { shards, edgeGeos } = buildMonogramShards({ seedsPerGlyph: Math.min(this.isMobile ? 6 : 9, getQuality().shardSeeds) });
     this.shards = shards.map((s) => {
       const mesh = new THREE.Mesh(s.geometry, this.baseMaterial.clone());
       mesh.position.copy(s.home);

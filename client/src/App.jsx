@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './context/ThemeContext';
 import { useTheme } from './context/theme';
+import { ContentProvider } from './content/ContentProvider';
 import CustomCursor from './components/CustomCursor';
 import NoiseOverlay from './components/NoiseOverlay';
 import Preloader from './components/Preloader';
@@ -58,7 +59,9 @@ const App = () => (
   <ThemeProvider>
     {/* Framer Motion follows the OS "reduce motion" setting, like the GSAP/WebGL parts */}
     <MotionConfig reducedMotion="user">
-      <PortfolioSite />
+      <ContentProvider>
+        <PortfolioSite />
+      </ContentProvider>
     </MotionConfig>
   </ThemeProvider>
 );

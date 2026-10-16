@@ -1,24 +1,61 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { preloadHeroScenes } from '../three/loaders';
 
-/* ─── tiny hook: animated counter ─── */
-const useCounter = (target, duration = 2600) => {
+/* ─── What the counter waits for ─── */
+const VISITED_KEY = 'ag-visited';
+const MAX_WAIT = 8000; // never hold the site back longer than this
+
+const isRepeatVisit = () => {
+  try { return sessionStorage.getItem(VISITED_KEY) === '1'; } catch { return false; }
+};
+const markVisited = () => {
+  try { sessionStorage.setItem(VISITED_KEY, '1'); } catch { /* fine */ }
+};
+
+// Fonts + the hero's WebGL chunks; failures still count as ready (the site has fallbacks)
+const whenSiteReady = () => {
+  const fonts = document.fonts?.ready ?? Promise.resolve();
+  const assets = Promise.allSettled([fonts, preloadHeroScenes()]);
+  const cap = new Promise((resolve) => setTimeout(resolve, MAX_WAIT));
+  return Promise.race([assets, cap]);
+};
+
+/*
+ * Counter that eases to 90 over the minimum duration, creeps while assets
+ * are still loading, then finishes the last stretch once they're ready.
+ */
+const useLoadProgress = (minDuration, ready) => {
   const [value, setValue] = useState(0);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    const start = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - start;
-      const t = Math.min(elapsed / duration, 1);
-      // Exponential easing out
-      const eased = 1 - Math.pow(1 - t, 4);
-      setValue(Math.floor(eased * target));
-      if (t < 1) requestAnimationFrame(tick);
-      else { setValue(target); setDone(true); }
+    let isReady = false;
+    let finishAt = 0;
+    let id;
+    ready.then(() => { isReady = true; });
+    const start = performance.now();
+    const tick = (now) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / minDuration, 1);
+      let v = (1 - Math.pow(1 - t, 4)) * 90;
+      if (t >= 1 && !isReady) v = 90 + 8 * (1 - Math.exp(-(elapsed - minDuration) / 2500));
+      if (t >= 1 && isReady) {
+        finishAt ||= now;
+        const f = Math.min((now - finishAt) / 320, 1);
+        v = Math.max(v, 90) + (100 - Math.max(v, 90)) * f;
+        if (f >= 1) {
+          setValue(100);
+          setDone(true);
+          return;
+        }
+      }
+      setValue(Math.floor(v));
+      id = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
-  }, [target, duration]);
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [minDuration, ready]);
 
   return { value, done };
 };
@@ -168,13 +205,17 @@ const BELTS = 10;
 const BELT_EASE = [0.76, 0, 0.24, 1];
 
 const Preloader = ({ onComplete }) => {
-  const { value: count, done: countDone } = useCounter(100, 2800);
+  // full show on the first visit, a quick beat when coming back in the same session
+  const [minDuration] = useState(() => (isRepeatVisit() ? 900 : 2400));
+  const [ready] = useState(whenSiteReady);
+  const { value: count, done: countDone } = useLoadProgress(minDuration, ready);
 
   // Hand over as soon as the count lands: the site mounts underneath and the
   // parent AnimatePresence plays this component's exit (content blurs out,
   // then the belts lift away in a wave to reveal the hero).
   useEffect(() => {
     if (countDone) {
+      markVisited();
       const t = setTimeout(() => onComplete?.(), 450);
       return () => clearTimeout(t);
     }
@@ -188,7 +229,8 @@ const Preloader = ({ onComplete }) => {
     'ALMOST THERE',
     'READY',
   ];
-  const msgIndex = Math.min(Math.floor((count / 100) * messages.length), messages.length - 1);
+  // "READY" only once everything has actually loaded
+  const msgIndex = count >= 100 ? messages.length - 1 : Math.min(Math.floor((count / 100) * (messages.length - 1)), messages.length - 2);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9000, overflow: 'hidden' }}>
@@ -261,7 +303,7 @@ const Preloader = ({ onComplete }) => {
             letterSpacing: '0.15em',
           }}
         >
-          AY.DEV — PORTFOLIO
+          AG.DEV — PORTFOLIO
         </motion.div>
 
         {/* Top-right: live clock */}

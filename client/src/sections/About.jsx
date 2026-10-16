@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { Fragment, memo, useEffect, useRef } from 'react';
 import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { gsap, prefersReducedMotion } from '../lib/gsap';
@@ -9,31 +9,21 @@ import FadeUp from '../components/reveal/FadeUp';
 import RollText from '../components/reveal/RollText';
 import CountUp from '../components/reveal/CountUp';
 import SectionLabel from '../components/reveal/SectionLabel';
-
-const stats = [
-  { value: '5+', label: 'Projects Built' },
-  { value: '10+', label: 'Tech Stacks' },
-  { value: '∞', label: 'Cups of Coffee' },
-];
-
-const links = [
-  { label: 'GitHub', href: 'https://github.com/Ayush-Gupta-0212' },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/ayush-gupta-5a646b289' },
-  { label: 'Resume', href: 'https://drive.google.com/file/d/1t2lAIj8f-tA10wilV_R4o7EIoYW6DqoL/view?usp=sharing' },
-];
+import { useContent } from '../content/context';
+import { fullName, socialLinks, splitHighlights } from '../content/store';
 
 /*
  * The statement is split into lines/chars by GSAP, so it must never re-render
- * with different children. Highlight colour comes from a CSS variable instead
- * of props, and the trailing slot is where the hero monogram lands on scroll.
+ * with different children — the parent remounts it (via key) when the text
+ * changes. [[Double-bracketed]] words are highlighted through a CSS variable,
+ * and the trailing slot is where the hero monogram lands on scroll.
  */
-const Statement = memo(() => (
+const Statement = memo(({ text }) => (
   <>
     <span className="statement-indent" aria-hidden="true" />
-    Hey, I&apos;m Ayush — a <span className="hl">full-stack developer</span> and{' '}
-    <span className="hl">creative coder</span> building things that live on the internet. I craft
-    immersive web experiences that blend aesthetic finesse with{' '}
-    <span className="hl">technical precision.</span>
+    {splitHighlights(text).map((part, i) => (part.hl
+      ? <span key={i} className="hl">{part.text}</span>
+      : <Fragment key={i}>{part.text}</Fragment>))}
     <span data-monogram-dock className="monogram-dock" aria-hidden="true" />
   </>
 ));
@@ -42,7 +32,7 @@ Statement.displayName = 'Statement';
 const mono = "'Space Mono', monospace";
 
 /* Portrait that wipes up out of a clip mask, then tilts toward the cursor */
-const PhotoCard = ({ theme, mode, isMobile }) => {
+const PhotoCard = ({ theme, mode, isMobile, src, alt }) => {
   const wrapRef = useRef(null);
   const tiltRef = useRef(null);
   const imgRef = useRef(null);
@@ -83,8 +73,8 @@ const PhotoCard = ({ theme, mode, isMobile }) => {
       >
         <img
           ref={imgRef}
-          src="/ayush-portrait.jpg"
-          alt="Portrait of Ayush Gupta"
+          src={src}
+          alt={alt}
           loading="lazy"
           decoding="async"
           width={824}
@@ -119,6 +109,9 @@ const PhotoCard = ({ theme, mode, isMobile }) => {
 
 const About = () => {
   const { theme, mode } = useTheme();
+  const { profile } = useContent().content;
+  const { about } = profile;
+  const links = socialLinks(profile);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const statementStyle = {
@@ -144,8 +137,8 @@ const About = () => {
         <div style={isMobile ? { marginBottom: '2rem' } : { position: 'absolute', left: 0, top: '0.9rem' }}>
           <SectionLabel number="01" label="ABOUT" theme={theme} />
         </div>
-        <ScrollRevealText as="h2" style={statementStyle}>
-          <Statement />
+        <ScrollRevealText key={about.statement} as="h2" style={statementStyle}>
+          <Statement text={about.statement} />
         </ScrollRevealText>
       </div>
 
@@ -164,22 +157,21 @@ const About = () => {
         alignItems: 'start',
       }}>
         <div style={{ gridColumn: isMobile ? 'auto' : '1 / span 4' }}>
-          <PhotoCard theme={theme} mode={mode} isMobile={isMobile} />
+          <PhotoCard theme={theme} mode={mode} isMobile={isMobile} src={about.portrait} alt={`Portrait of ${fullName(profile)}`} />
         </div>
 
         <div style={{ gridColumn: isMobile ? 'auto' : '6 / span 3' }}>
           <BlurReveal as="span" by="chars" style={{ display: 'block', fontFamily: mono, fontSize: '0.62rem', letterSpacing: '0.2em', color: theme.accentInk, marginBottom: '1.2rem' }}>
             ✦ PHILOSOPHY
           </BlurReveal>
-          <BlurReveal as="p" style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', lineHeight: 1.35, fontWeight: 500, letterSpacing: '-0.02em', color: theme.text }}>
-            The best software is both functional and beautiful — and I refuse to compromise on either.
+          <BlurReveal key={about.philosophy} as="p" style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', lineHeight: 1.35, fontWeight: 500, letterSpacing: '-0.02em', color: theme.text }}>
+            {about.philosophy}
           </BlurReveal>
         </div>
 
         <FadeUp style={{ gridColumn: isMobile ? 'auto' : '9 / span 4' }}>
           <p style={{ color: theme.textSub, lineHeight: 1.85, fontSize: '1rem', marginBottom: '2.2rem', maxWidth: 420 }}>
-            Currently pursuing my degree while simultaneously building production-grade applications — from scalable
-            backends and clean APIs to fast, polished frontends.
+            {about.bio}
           </p>
           <div style={{ display: 'flex', gap: '1.75rem', flexWrap: 'wrap' }}>
             {links.map(({ label, href }) => (
@@ -206,13 +198,13 @@ const About = () => {
           borderTop: `1px solid ${theme.border}`, marginTop: isMobile ? '3.5rem' : '6rem',
         }}
       >
-        {stats.map(({ value, label }, i) => (
+        {about.stats.map(({ value, label }, i) => (
           <div
-            key={label}
+            key={`${label}-${i}`}
             className="about-stat"
             style={{
               padding: isMobile ? '1.2rem 0.75rem' : '1.8rem 1.5rem 1.5rem',
-              borderRight: i < stats.length - 1 ? `1px solid ${theme.border}` : 'none',
+              borderRight: i < about.stats.length - 1 ? `1px solid ${theme.border}` : 'none',
               position: 'relative',
             }}
           >

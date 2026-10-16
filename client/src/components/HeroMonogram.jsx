@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { MonogramExperience, MONOGRAM_PALETTES } from '../three/monogram/MonogramExperience';
+import { loadMonogram } from '../three/loaders';
 
 /* Small "press and hold" glyph used in the hint */
 const HoldIcon = ({ color }) => (
@@ -19,44 +19,53 @@ const HeroMonogram = ({ sectionRef, getAnchor, mode, theme, isMobile = false }) 
   const overlayRef = useRef(null);
   const hintRef = useRef(null);
   const expRef = useRef(null);
-  const initialMode = useRef(mode);
+  const modeRef = useRef(mode);
+  const palettesRef = useRef(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || !hostRef.current) return undefined;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let exp;
-    try {
-      exp = new MonogramExperience({
-        layer: layerRef.current,
-        host: hostRef.current,
-        overlay: overlayRef.current,
-        hint: hintRef.current,
-        section,
-        palette: MONOGRAM_PALETTES[initialMode.current],
-        getAnchor,
-        getDock,
-        stageSelectors: ['#about'],
-        isMobile,
-        reducedMotion,
+    let exp = null;
+    let cancelled = false;
+    let timers = [];
+    // usually already downloaded during the preloader, so this resolves at once
+    loadMonogram()
+      .then(({ MonogramExperience, MONOGRAM_PALETTES }) => {
+        if (cancelled) return;
+        palettesRef.current = MONOGRAM_PALETTES;
+        exp = new MonogramExperience({
+          layer: layerRef.current,
+          host: hostRef.current,
+          overlay: overlayRef.current,
+          hint: hintRef.current,
+          section,
+          palette: MONOGRAM_PALETTES[modeRef.current],
+          getAnchor,
+          getDock,
+          stageSelectors: ['#about'],
+          isMobile,
+          reducedMotion,
+        });
+        expRef.current = exp;
+        // layout settles while the name animates in; re-measure a few times
+        timers = [450, 1300, 2300].map((ms) => setTimeout(() => exp.refreshAnchor(), ms));
+      })
+      .catch((err) => {
+        // WebGL (or the chunk) unavailable — the hero still works without the monogram
+        console.warn('Hero monogram disabled:', err);
       });
-    } catch (err) {
-      // WebGL unavailable — the hero still works without the monogram
-      console.warn('Hero monogram disabled:', err);
-      return undefined;
-    }
-    expRef.current = exp;
-    // layout settles while the name animates in; re-measure a few times
-    const timers = [450, 1300, 2300].map((ms) => setTimeout(() => exp.refreshAnchor(), ms));
     return () => {
+      cancelled = true;
       timers.forEach(clearTimeout);
-      exp.dispose();
+      exp?.dispose();
       expRef.current = null;
     };
   }, [sectionRef, getAnchor, isMobile]);
 
   useEffect(() => {
-    expRef.current?.setPalette(MONOGRAM_PALETTES[mode]);
+    modeRef.current = mode;
+    if (palettesRef.current) expRef.current?.setPalette(palettesRef.current[mode]);
   }, [mode]);
 
   return (

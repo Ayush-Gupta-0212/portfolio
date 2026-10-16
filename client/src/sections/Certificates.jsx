@@ -2,55 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useTheme } from '../context/theme';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { gsap, ScrollTrigger, prefersReducedMotion } from '../lib/gsap';
-import { CertSpiral, PHASE } from '../three/certSpiral/CertSpiral';
+import { PHASE } from '../three/certSpiral/phase';
+import { loadCertSpiral } from '../three/loaders';
 import RollText from '../components/reveal/RollText';
+import { useContent } from '../content/context';
 
-const CERTIFICATES = [
-  {
-    id: '1',
-    title: 'The Bits and Bytes of Computer Networking',
-    issuer: 'Google · Coursera',
-    date: 'Sep 2024',
-    link: 'https://coursera.org/share/4e4c7de8a17077c5b7739a5b60a9ff4c',
-    image: '/cert-google-networking.webp',
-  },
-  {
-    id: '2',
-    title: 'ChatGPT-4 Prompt Engineering: ChatGPT, Generative AI & LLM',
-    issuer: 'Infosys Springboard',
-    date: 'Aug 2025',
-    link: 'https://verify.onwingspan.com/',
-    image: '/cert-infosys-prompt.webp',
-  },
-  {
-    id: '3',
-    title: 'Cloud Computing',
-    issuer: 'NPTEL · IIT Kharagpur · Elite',
-    date: 'Jan–Apr 2025',
-    link: 'https://archive.nptel.ac.in/content/noc/NOC25/SEM1/Ecertificates/106/noc25-cs11/Course/NPTEL25CS11S143730205304237111.pdf',
-    image: '/cert-nptel-cloud.webp',
-  },
-  {
-    id: '4',
-    title: 'Data Structures and Algorithm',
-    issuer: 'LPU · iamNEO · 72 hrs',
-    date: 'Dec 2024',
-    link: 'https://lpucolab438.examly.io/certificate/U2FsdGVkX1%2FFrU7t0k%2FGDI6CamFFUjuhLa6tCSJi1MY%3D',
-    image: '/cert-lpu-dsa.webp',
-  },
-  {
-    id: '5',
-    title: 'Object Oriented Programming',
-    issuer: 'LPU · iamNEO · 72 hrs',
-    date: 'Dec 2024',
-    link: 'https://lpucolab438.examly.io/certificate/U2FsdGVkX19K1WhCp9UOMqDVZwHp5TWa00dRMvED0Vs%3D',
-    image: '/cert-lpu-oop.webp',
-  },
-];
 
 const mono = "'Space Mono', monospace";
 
-const openCert = (i) => window.open(CERTIFICATES[i].link, '_blank', 'noopener,noreferrer');
 
 const CertCard = ({ cert, theme, isMobile, mediaRef }) => (
   <a className="cert-card" href={cert.link} target="_blank" rel="noopener noreferrer" style={{ '--card-border': theme.border }}>
@@ -72,6 +31,11 @@ const CertCard = ({ cert, theme, isMobile, mediaRef }) => (
 
 const Certificates = () => {
   const { theme, mode } = useTheme();
+  const { certificates } = useContent().content;
+  // the spiral is rebuilt only when the set of certificates/images changes
+  const certKey = certificates.map((c) => `${c._id}|${c.image}`).join(',');
+  const certsRef = useRef(certificates);
+  useEffect(() => { certsRef.current = certificates; }, [certificates]);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const sectionRef = useRef(null);
@@ -126,30 +90,41 @@ const Certificates = () => {
         .fromTo(headRef.current.children, { autoAlpha: 0, yPercent: 50, filter: 'blur(12px)' },
           { autoAlpha: 1, yPercent: 0, filter: 'blur(0px)', duration: 0.1, stagger: 0.02 }, PHASE.gridStart + 0.06)
         .fromTo(lineRefs.current, { scaleX: 0 }, { scaleX: 1, duration: 0.22, stagger: 0.04 }, PHASE.gridStart + 0.1)
-        .fromTo(textRefs.current, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.08, stagger: 0.015 }, PHASE.gridEnd - 0.08)
-        .fromTo(mediaRefs.current, { opacity: 0 }, { opacity: 1, duration: PHASE.swapEnd - PHASE.swapStart }, PHASE.swapStart)
+        .fromTo(textRefs.current.filter(Boolean), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.08, stagger: 0.015 }, PHASE.gridEnd - 0.08)
+        .fromTo(mediaRefs.current.filter(Boolean), { opacity: 0 }, { opacity: 1, duration: PHASE.swapEnd - PHASE.swapStart }, PHASE.swapStart)
         .set({}, {}, 1); // timeline spans exactly 0 → 1
     }, stage);
 
+    // The WebGL spiral is its own chunk; the scroll timeline above works without it
     let spiral = null;
-    try {
-      spiral = new CertSpiral({
-        canvas: canvasRef.current,
-        stage,
-        certs: CERTIFICATES,
-        palette: paletteRef.current,
-        isMobile,
-        getProgress: () => tl.progress(),
-        getTargets: () => mediaRefs.current.map((el) => el?.getBoundingClientRect()),
-        onOpen: openCert,
-      });
-    } catch (err) {
-      console.warn('Certificate spiral disabled:', err);
-    }
-    spiralRef.current = spiral;
+    let cancelled = false;
+    let inView = false;
+    loadCertSpiral()
+      .then(({ CertSpiral }) => {
+        if (cancelled) return;
+        spiral = new CertSpiral({
+          canvas: canvasRef.current,
+          stage,
+          certs: certsRef.current,
+          palette: paletteRef.current,
+          isMobile,
+          getProgress: () => tl.progress(),
+          getTargets: () => mediaRefs.current.map((el) => el?.getBoundingClientRect()),
+          onOpen: (i) => {
+            const link = certsRef.current[i]?.link;
+            if (link) window.open(link, '_blank', 'noopener,noreferrer');
+          },
+        });
+        spiral.setInView(inView);
+        spiralRef.current = spiral;
+      })
+      .catch((err) => console.warn('Certificate spiral disabled:', err));
 
     // only render while the section (incl. its pin spacing) is near the viewport
-    const io = new IntersectionObserver(([e]) => spiral?.setInView(e.isIntersecting), { rootMargin: '200px 0px' });
+    const io = new IntersectionObserver(([e]) => {
+      inView = e.isIntersecting;
+      spiral?.setInView(inView);
+    }, { rootMargin: '200px 0px' });
     io.observe(sectionRef.current);
 
     // late-loading images above (projects) shift the pin start; keep triggers fresh
@@ -158,6 +133,7 @@ const Certificates = () => {
     ro.observe(document.body);
 
     return () => {
+      cancelled = true;
       clearTimeout(t);
       ro.disconnect();
       io.disconnect();
@@ -165,7 +141,7 @@ const Certificates = () => {
       spiralRef.current = null;
       ctx.revert();
     };
-  }, [isMobile, reduced]);
+  }, [isMobile, reduced, certKey]);
 
   const wordStyle = {
     fontFamily: "'Space Grotesk', sans-serif",
@@ -194,7 +170,7 @@ const Certificates = () => {
           <span style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             04 <span style={{ width: '3rem', height: 1, background: theme.border }} /> CERTIFICATES
           </span>
-          <span>{String(CERTIFICATES.length).padStart(2, '0')} VERIFIED</span>
+          <span>{String(certificates.length).padStart(2, '0')} VERIFIED</span>
         </div>
 
         {/* sweeping words — no z-index, so their blend mode reaches the canvas */}
@@ -224,9 +200,9 @@ const Certificates = () => {
             </span>
           </div>
           <div ref={(el) => { lineRefs.current[0] = el; }} className="cert-rule" style={{ background: theme.border }} />
-          <div className="cert-grid" style={{ gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : `repeat(${CERTIFICATES.length}, minmax(0, 1fr))`, gap: isMobile ? '0.9rem 0.75rem' : '1.25rem', padding: isMobile ? '1rem 0' : '1.6rem 0' }}>
-            {CERTIFICATES.map((cert, i) => (
-              <div key={cert.id} ref={(el) => { textRefs.current[i] = el?.querySelector('.cert-text'); }} className="cert-cell">
+          <div className="cert-grid" style={{ gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : `repeat(${Math.max(1, certificates.length)}, minmax(0, 1fr))`, gap: isMobile ? '0.9rem 0.75rem' : '1.25rem', padding: isMobile ? '1rem 0' : '1.6rem 0' }}>
+            {certificates.map((cert, i) => (
+              <div key={cert._id ?? i} ref={(el) => { textRefs.current[i] = el?.querySelector('.cert-text'); }} className="cert-cell">
                 <CertCard cert={cert} theme={theme} isMobile={isMobile} mediaRef={(el) => { mediaRefs.current[i] = el; }} />
               </div>
             ))}

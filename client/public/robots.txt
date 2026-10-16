@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin
 
 Sitemap: https://portfolio-1zo9.vercel.app/sitemap.xml

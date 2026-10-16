@@ -1,19 +1,14 @@
 import * as THREE from 'three';
+import { getQuality, pixelRatio } from '../../lib/device';
+import { PHASE } from './phase';
+
+export { PHASE };
 
 /* ─────────────────────────────────────────────────────────────
  * Certificates spiral (after Trionn's "Design in motion"):
  * certificates ride a two-turn helix as bent ribbons while the
  * section is pinned, then fly in and land on the DOM grid.
  * ───────────────────────────────────────────────────────────── */
-
-// Scroll phases (fractions of the pinned scroll), shared with the React timeline
-export const PHASE = {
-  spiralEnd: 0.62,
-  gridStart: 0.5,
-  gridEnd: 0.84,
-  swapStart: 0.84,
-  swapEnd: 0.9,
-};
 
 const R = 12;
 const ANGLE = Math.PI * 2 * 2;           // two turns
@@ -151,8 +146,8 @@ export class CertSpiral {
   }
 
   init() {
-    const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.5 : 1.75));
+    const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: getQuality().antialias, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(pixelRatio(this.isMobile));
     renderer.setClearColor(0x000000, 0);
     this.renderer = renderer;
 
